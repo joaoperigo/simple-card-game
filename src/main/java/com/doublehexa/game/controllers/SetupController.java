@@ -1,5 +1,6 @@
 package com.doublehexa.game.controllers;
 
+import com.doublehexa.game.dto.FighterSetupForm;
 import com.doublehexa.game.services.FighterService;
 import com.doublehexa.game.services.PowerService;
 import lombok.RequiredArgsConstructor;
