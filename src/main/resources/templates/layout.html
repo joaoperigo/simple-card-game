@@ -20,5 +20,31 @@
         <!-- Conteúdo será injetado aqui -->
     </div>
 </main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+    // Conexão WebSocket
+    const socket = new SockJS('/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+        console.log('Connected: ' + frame);
+
+        // Inscrever no tópico do jogo atual
+        const gameId = document.getElementById('gameId')?.value;
+        if (gameId) {
+            stompClient.subscribe('/topic/game.' + gameId, function (response) {
+                const game = JSON.parse(response.body);
+                updateGameState(game);
+            });
+        }
+    });
+
+    function updateGameState(game) {
+        // Atualizar interface do usuário com novo estado do jogo
+        // Será implementado em cada template específico
+    }
+</script>
 </body>
 </html>

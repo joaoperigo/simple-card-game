@@ -17,7 +17,6 @@ public class Fighter {
     @ManyToOne
     private Player owner;
 
-    // Validação de pontos (1-8)
     @PrePersist
     @PreUpdate
     public void validatePoints() {

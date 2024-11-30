@@ -1,5 +1,8 @@
+package com.doublehexa.game.models;
+
 import jakarta.persistence.*;
 import lombok.Data;
+import java.util.List;
 
 @Data
 @Entity
@@ -17,5 +20,4 @@ public class Player {
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Power> powers;
-
 }
