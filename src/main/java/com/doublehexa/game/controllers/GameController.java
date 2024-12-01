@@ -1,12 +1,16 @@
 package com.doublehexa.game.controllers;
 
 import com.doublehexa.game.models.Game;
+import com.doublehexa.game.models.Player;
 import com.doublehexa.game.services.GameService;
 import com.doublehexa.game.services.PlayerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
 
 @Controller
 @RequestMapping("/game")
@@ -16,8 +20,19 @@ public class GameController {
     private final PlayerService playerService;
 
     @GetMapping("/lobby")
-    public String showLobby(Model model) {
-        // Lista jogos disponíveis e jogadores online
+    public String showLobby(Model model, Principal principal) {
+        Player currentPlayer = playerService.findByUsername(principal.getName());
+
+        // Busca TODOS os jogadores exceto o atual
+        List<Player> otherPlayers = playerService.findAllPlayersExcept(currentPlayer);
+
+        // Busca jogos em SETUP ou PLAYING
+        List<Game> activeGames = gameService.findActiveGames();
+
+        model.addAttribute("games", activeGames);
+        model.addAttribute("onlinePlayers", otherPlayers);
+        model.addAttribute("currentPlayer", currentPlayer);
+
         return "game/lobby";
     }
 

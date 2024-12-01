@@ -1,36 +1,62 @@
 <div th:fragment="content">
-  <h2 class="text-2xl font-bold mb-4">Game Lobby</h2>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Lista de Jogos Ativos -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <h3 class="text-lg font-semibold mb-2">Active Games</h3>
-      <div class="space-y-2">
-        <div th:each="game : ${games}" class="border p-2 rounded">
-          <span th:text="${game.player1.username}"></span>
-          vs
-          <span th:text="${game.player2.username}"></span>
-          <a th:href="@{/game/{id}(id=${game.id})}"
-             class="bg-blue-500 text-white px-3 py-1 rounded float-right">
-            Join
-          </a>
-        </div>
+  <div class="container mx-auto p-4">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold">Game Lobby</h2>
+      <div class="text-sm">
+        Welcome, <span th:text="${#authentication.name}" class="font-bold"></span>!
       </div>
     </div>
 
-    <!-- Lista de Jogadores Online -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <h3 class="text-lg font-semibold mb-2">Online Players</h3>
-      <div class="space-y-2">
-        <div th:each="player : ${onlinePlayers}" class="border p-2 rounded">
-          <span th:text="${player.username}"></span>
-          <form th:action="@{/game/create}" method="post" class="inline float-right">
-            <input type="hidden" name="player2Id" th:value="${player.id}">
-            <button type="submit"
-                    class="bg-green-500 text-white px-3 py-1 rounded">
-              Challenge
-            </button>
-          </form>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Lista de Jogos Ativos -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Active Games</h3>
+
+        <div class="space-y-3">
+          <div th:each="game : ${games}"
+               class="border p-3 rounded flex justify-between items-center">
+            <div>
+              <span th:text="${game.player1.username}"></span>
+              vs
+              <span th:text="${game.player2.username}"></span>
+              <span th:class="${game.status == T(com.doublehexa.game.models.GameStatus).SETUP ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}"
+                    class="text-xs px-2 py-1 rounded ml-2"
+                    th:text="${game.status}">
+                            </span>
+            </div>
+            <a th:href="@{/game/{id}(id=${game.id})}"
+               class="bg-blue-500 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+              Join Game
+            </a>
+          </div>
+
+          <div th:if="${#lists.isEmpty(games)}" class="text-gray-500 text-center py-4">
+            No active games at the moment
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Jogadores Online -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-4">Online Players</h3>
+
+        <div class="space-y-3">
+          <div th:each="player : ${onlinePlayers}"
+               class="border p-3 rounded flex justify-between items-center">
+            <span th:text="${player.username}"></span>
+            <form th:if="${player.id != currentPlayer.id}"
+                  th:action="@{/game/create}" method="post" class="inline">
+              <input type="hidden" name="player2Id" th:value="${player.id}">
+              <button type="submit"
+                      class="bg-green-500 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                Challenge
+              </button>
+            </form>
+          </div>
+
+          <div th:if="${#lists.isEmpty(onlinePlayers)}" class="text-gray-500 text-center py-4">
+            No other players online
+          </div>
         </div>
       </div>
     </div>

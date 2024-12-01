@@ -5,6 +5,7 @@ import com.doublehexa.game.repositories.PlayerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -24,5 +25,13 @@ public class PlayerService {
     @Transactional
     public Player createPlayer(Player player) {
         return playerRepository.save(player);
+    }
+
+    public List<Player> findAllPlayers() {
+        return playerRepository.findAll();
+    }
+
+    public List<Player> findAllPlayersExcept(Player currentPlayer) {
+        return playerRepository.findByIdNot(currentPlayer.getId());
     }
 }
