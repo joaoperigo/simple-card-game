@@ -5,7 +5,10 @@ import com.doublehexa.game.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.List;
+import java.util.Collection;
 
 @Service
 @RequiredArgsConstructor
@@ -73,6 +76,19 @@ public class GameService {
             game.setStatus(GameStatus.PLAYING);
             gameRepository.save(game);
         }
+
+        gameFighterRepository.saveAll(fighters);
+
+        // Verifica se ambos os jogadores já configuraram seus fighters
+        if (gameFighterRepository.countByGame(game) == 8) {  // 4 fighters por jogador
+            game.setStatus(GameStatus.PLAYING);
+
+            // Define aleatoriamente quem começa
+            Random random = new Random();
+            game.setCurrentTurn(random.nextBoolean() ? game.getPlayer1() : game.getPlayer2());
+
+            gameRepository.save(game);
+        }
     }
 
     @Transactional
@@ -138,5 +154,9 @@ public class GameService {
     public boolean hasPlayerSetupFighters(Game game, Player player) {
         List<GameFighter> fighters = gameFighterRepository.findByGameAndPlayer(game, player);
         return !fighters.isEmpty();  // Se tem fighters, já fez setup
+    }
+
+    public List<Game> findActiveGames() {
+        return gameRepository.findByStatusIn(Arrays.asList(GameStatus.SETUP, GameStatus.PLAYING));
     }
 }
