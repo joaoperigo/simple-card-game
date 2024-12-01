@@ -28,4 +28,10 @@ public class Game {
 
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
     private List<GameMove> moves;
+
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
+    private List<GameFighter> player1Fighters;
+
+    @OneToMany(mappedBy = "game", cascade = CascadeType.ALL)
+    private List<GameFighter> player2Fighters;
 }

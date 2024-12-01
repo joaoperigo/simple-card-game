@@ -15,13 +15,13 @@ public class GameMove {
     private Game game;
 
     @ManyToOne
-    private Fighter attackingFighter;
+    private GameFighter attackingFighter;  // Mudou de Fighter para GameFighter
 
     @ManyToOne
     private Power attackPower;
 
     @ManyToOne
-    private Fighter targetFighter;
+    private GameFighter targetFighter;     // Mudou de Fighter para GameFighter
 
     @ManyToOne
     private Power defensePower;

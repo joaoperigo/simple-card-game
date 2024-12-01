@@ -16,8 +16,5 @@ public class Player {
     private String password;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
-    private List<Fighter> fighters;
-
-    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Power> powers;
 }
