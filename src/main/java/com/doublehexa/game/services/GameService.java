@@ -111,6 +111,11 @@ public class GameService {
         attackPower.setUsed(true);
         powerRepository.save(attackPower);
 
+        // Verifica se o jogo acabou após o movimento
+        if (isGameOver(game)) {
+            finishGame(game);
+        }
+
         return game;
     }
 
