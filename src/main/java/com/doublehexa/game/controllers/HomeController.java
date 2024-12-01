@@ -8,11 +8,11 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "home";  // irá procurar por templates/home.html
+        return "home";
     }
 
     @GetMapping("/login")
     public String login() {
-        return "auth/login";  // irá procurar por templates/auth/login.html
+        return "auth/login";
     }
 }
