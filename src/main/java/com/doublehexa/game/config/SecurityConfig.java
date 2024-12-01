@@ -26,7 +26,9 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()  // Permite acesso ao WebSocket
                         .anyRequest().authenticated()
                 )
-                .headers(headers -> headers.frameOptions().disable())  // Para o console H2 funcionar
+                .headers(headers -> headers
+                        .frameOptions(frameOptions -> frameOptions.disable())
+                )  // Para o console H2 funcionar
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/game/lobby", true)
