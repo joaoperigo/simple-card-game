@@ -1,6 +1,7 @@
 package com.doublehexa.game.controllers;
 
 import com.doublehexa.game.models.Game;
+import com.doublehexa.game.models.GameStatus;
 import com.doublehexa.game.services.GameService;
 import com.doublehexa.game.dto.GameMoveRequest;
 import com.doublehexa.game.dto.GameStateDTO;

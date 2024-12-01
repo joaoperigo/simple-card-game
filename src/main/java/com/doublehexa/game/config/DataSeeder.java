@@ -11,32 +11,32 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @RequiredArgsConstructor
 public class DataSeeder {
-    private final PlayerRepository playerRepository;
-    private final GameRepository gameRepository;
-    private final PasswordEncoder passwordEncoder;
-
     @Bean
-    CommandLineRunner initDatabase() {
+    CommandLineRunner initDatabase(
+            PlayerRepository playerRepository,
+            GameRepository gameRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
-            // Criar jogadores de teste
-            Player player1 = new Player();
-            player1.setUsername("player1");
-            player1.setEmail("player1@test.com");
-            player1.setPassword(passwordEncoder.encode("123456"));
-            playerRepository.save(player1);
+            // Criar jogador de teste
+            Player testPlayer = new Player();
+            testPlayer.setUsername("test");
+            testPlayer.setEmail("test@example.com");
+            testPlayer.setPassword(passwordEncoder.encode("123456"));
+            playerRepository.save(testPlayer);
 
-            Player player2 = new Player();
-            player2.setUsername("player2");
-            player2.setEmail("player2@test.com");
-            player2.setPassword(passwordEncoder.encode("123456"));
-            playerRepository.save(player2);
+            // Criar segundo jogador de teste
+            Player opponent = new Player();
+            opponent.setUsername("opponent");
+            opponent.setEmail("opponent@example.com");
+            opponent.setPassword(passwordEncoder.encode("123456"));
+            playerRepository.save(opponent);
 
             // Criar um jogo de teste
-            Game game = new Game();
-            game.setPlayer1(player1);
-            game.setPlayer2(player2);
-            game.setStatus(GameStatus.SETUP);
-            gameRepository.save(game);
+            Game testGame = new Game();
+            testGame.setPlayer1(testPlayer);
+            testGame.setPlayer2(opponent);
+            testGame.setStatus(GameStatus.SETUP);
+            gameRepository.save(testGame);
         };
     }
 }

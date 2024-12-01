@@ -134,4 +134,9 @@ public class GameService {
         game.setStatus(GameStatus.FINISHED);
         gameRepository.save(game);
     }
+
+    public boolean hasPlayerSetupFighters(Game game, Player player) {
+        List<GameFighter> fighters = gameFighterRepository.findByGameAndPlayer(game, player);
+        return !fighters.isEmpty();  // Se tem fighters, já fez setup
+    }
 }
