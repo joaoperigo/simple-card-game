@@ -5,10 +5,8 @@ import com.doublehexa.game.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.List;
-import java.util.Collection;
+
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +16,7 @@ public class GameService {
     private final GameFighterRepository gameFighterRepository;
     private final PowerRepository powerRepository;
     private final GameMoveRepository gameMoveRepository;
+    private final PowerService powerService;
 
     public Game findById(Long id) {
         return gameRepository.findById(id)
@@ -86,6 +85,10 @@ public class GameService {
             // Define aleatoriamente quem começa
             Random random = new Random();
             game.setCurrentTurn(random.nextBoolean() ? game.getPlayer1() : game.getPlayer2());
+
+            // Inicializa powers para ambos os jogadores
+            powerService.initializePlayerPowers(game.getPlayer1());
+            powerService.initializePlayerPowers(game.getPlayer2());
 
             gameRepository.save(game);
         }

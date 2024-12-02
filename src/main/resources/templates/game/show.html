@@ -1,40 +1,148 @@
 <div th:fragment="content">
   <div class="container mx-auto p-4">
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold">Game Status</h2>
-      <p>Status: <span th:text="${game.status}"></span></p>
-      <!-- Só mostra o turno se o jogo estiver em andamento -->
-      <p th:if="${game.currentTurn != null}">
-        Current Turn: <span th:text="${game.currentTurn.username}"></span>
-      </p>
+    <!-- Status do Jogo -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+      <h2 class="text-2xl font-bold mb-2">Game Status</h2>
+      <p class="mb-1">Status: <span th:text="${game.status}" class="font-semibold"></span></p>
+      <p>Current Turn: <span th:text="${game.currentTurn?.username}" class="font-semibold"></span></p>
+      <div th:if="${isMyTurn}" class="mt-2 text-green-600 font-bold">
+        It's your turn!
+      </div>
     </div>
 
-    <!-- Player's Fighters -->
-    <div class="mb-8">
+    <!-- Área do Oponente -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
+      <h3 class="text-xl font-bold mb-4">Opponent's Fighters</h3>
+      <div class="grid grid-cols-4 gap-4">
+        <!-- Na seção "Opponent's Fighters" -->
+        <div th:each="fighter : ${opponentFighters}"
+             th:class="${fighter.active ? 'bg-red-50' : 'bg-gray-50'}"
+             th:data-fighter-id="${fighter.id}"
+             th:data-active="${fighter.active}"
+             class="p-4 border rounded-lg opponent-fighter"
+             onclick="selectTarget(this)">
+          <h4 th:text="${fighter.name}" class="font-bold text-lg mb-2"></h4>
+          <p>Points: <span th:text="${fighter.points}" class="font-semibold"></span></p>
+          <p>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"
+                           th:class="${fighter.active ? 'text-green-600' : 'text-red-600'}"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seus Fighters -->
+    <div class="mb-6 bg-white rounded-lg shadow p-4">
       <h3 class="text-xl font-bold mb-4">Your Fighters</h3>
       <div class="grid grid-cols-4 gap-4">
         <div th:each="fighter : ${myFighters}"
-             th:class="${fighter.active ? 'bg-green-100' : 'bg-red-100'}"
-             class="p-4 border rounded">
-          <h4 th:text="${fighter.name}" class="font-bold"></h4>
-          <p>Points: <span th:text="${fighter.points}"></span></p>
-          <p>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"></span></p>
+             th:class="${fighter.active ? 'bg-blue-50 cursor-pointer hover:bg-blue-100' : 'bg-red-50'}"
+             th:data-fighter-id="${fighter.id}"
+             class="p-4 border rounded-lg fighter-card"
+             th:onclick="${isMyTurn && fighter.active} ? 'selectFighter(this)' : ''">
+          <h4 th:text="${fighter.name}" class="font-bold text-lg mb-2"></h4>
+          <p>Points: <span th:text="${fighter.points}" class="font-semibold"></span></p>
+          <p>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"
+                           th:class="${fighter.active ? 'text-green-600' : 'text-red-600'}"></span></p>
+          <div th:if="${isMyTurn && fighter.active}"
+               class="mt-2 text-center fighter-select-status hidden">
+            Selected
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Opponent's Fighters -->
-    <div class="mb-8">
-      <h3 class="text-xl font-bold mb-4">Opponent's Fighters</h3>
-      <div class="grid grid-cols-4 gap-4">
-        <div th:each="fighter : ${opponentFighters}"
-             th:class="${fighter.active ? 'bg-green-100' : 'bg-red-100'}"
-             class="p-4 border rounded">
-          <h4 th:text="${fighter.name}" class="font-bold"></h4>
-          <p>Points: <span th:text="${fighter.points}"></span></p>
-          <p>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"></span></p>
+    <!-- Seus Powers -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <h3 class="text-xl font-bold mb-4">Your Available Powers</h3>
+      <div class="grid grid-cols-8 gap-2">
+        <!-- Mensagem quando não há powers -->
+        <div th:if="${#lists.isEmpty(myPowers)}"
+             class="col-span-8 text-center text-gray-500 py-4">
+          No powers available
         </div>
+
+        <!-- Lista de powers -->
+        <div th:each="power : ${myPowers}"
+             th:data-power-id="${power.id}"
+             th:data-power-value="${power.value}"  <!-- Mantendo .value -->
+        class="p-3 border rounded-lg text-center bg-yellow-50 power-card opacity-50 transition-all duration-200"
+        onclick="selectPower(this)">
+        <span th:text="${power.value}"
+              class="text-2xl font-bold text-yellow-800"></span>
       </div>
+      <script>
+        function selectPower(element) {
+            if (!selectedFighter || element.classList.contains('cursor-not-allowed')) return;
+
+            // Remove seleção anterior
+            document.querySelectorAll('.power-card').forEach(card => {
+                card.classList.remove('ring-2', 'ring-yellow-500');
+            });
+
+            // Seleciona o power
+            element.classList.add('ring-2', 'ring-yellow-500');
+
+            // Habilita seleção do alvo
+            enableTargetSelection();
+        }
+
+        function enableTargetSelection() {
+            document.querySelectorAll('.opponent-fighter').forEach(fighter => {
+                if (fighter.getAttribute('data-active') === 'true') {
+                    fighter.classList.add('cursor-pointer', 'hover:bg-red-100');
+                }
+            });
+        }
+      </script>
     </div>
   </div>
+  </div>
+
+  <script>
+    console.log("teste")
+    let selectedFighter = null;
+
+    function selectFighter(element) {
+        if (!element.classList.contains('cursor-pointer')) return;
+
+        // Remove seleção anterior
+        document.querySelectorAll('.fighter-card').forEach(card => {
+            card.classList.remove('ring-2', 'ring-blue-500');
+            card.querySelector('.fighter-select-status')?.classList.add('hidden');
+        });
+
+        // Se clicou no mesmo fighter, desseleciona
+        if (selectedFighter === element) {
+            selectedFighter = null;
+            return;
+        }
+
+        // Seleciona o novo fighter
+        selectedFighter = element;
+        element.classList.add('ring-2', 'ring-blue-500');
+        element.querySelector('.fighter-select-status').classList.remove('hidden');
+
+        // Mostra os powers disponíveis para este fighter
+        const fighterId = element.getAttribute('data-fighter-id');
+        showAvailablePowers(fighterId);
+    }
+
+    function showAvailablePowers(fighterId) {
+        // Buscar os points do fighter selecionado
+        const fighterPoints = parseInt(selectedFighter.querySelector('.points').textContent);
+
+        // Mostra apenas powers que podem ser usados por este fighter
+        document.querySelectorAll('.power-card').forEach(powerCard => {
+            const powerValue = parseInt(powerCard.getAttribute('data-power-value'));
+            if (powerValue <= fighterPoints) {
+                powerCard.classList.remove('opacity-50', 'cursor-not-allowed');
+                powerCard.classList.add('cursor-pointer');
+            } else {
+                powerCard.classList.add('opacity-50', 'cursor-not-allowed');
+                powerCard.classList.remove('cursor-pointer');
+            }
+        });
+    }
+  </script>
+
 </div>
+

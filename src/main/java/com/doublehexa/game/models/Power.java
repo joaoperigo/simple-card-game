@@ -10,10 +10,13 @@ public class Power {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "power_value")  // Apenas esta mudança é necessária
     private int value;
+
     private boolean used = false;
 
     @ManyToOne
+    @JoinColumn(name = "owner_id")
     private Player owner;
 
     @PrePersist
