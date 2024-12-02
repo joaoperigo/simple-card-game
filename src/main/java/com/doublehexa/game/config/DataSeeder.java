@@ -2,6 +2,7 @@ package com.doublehexa.game.config;
 
 import com.doublehexa.game.models.*;
 import com.doublehexa.game.repositories.*;
+import com.doublehexa.game.services.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,7 @@ public class DataSeeder {
             GameRepository gameRepository,
             GameFighterRepository gameFighterRepository,
             PowerRepository powerRepository,
+            PowerService powerService,
             PasswordEncoder passwordEncoder) {
         return args -> {
             // Limpar dados existentes
@@ -51,6 +53,19 @@ public class DataSeeder {
             System.out.println("=== Test Data Created ===");
             System.out.println("Players created: test, test2, player3, player4 (all with password: 123456)");
             System.out.println("Games created: " + games.size());
+
+            // remover apos debug
+            // Para jogos em PLAYING, inicializa os powers
+            // para os jogos que já começam em PLAYING:
+            games.stream()
+                    .filter(g -> g.getStatus() == GameStatus.PLAYING)
+                    .forEach(g -> {
+                        powerService.initializePlayerPowers(g.getPlayer1());
+                        powerService.initializePlayerPowers(g.getPlayer2());
+                    });
+
+            System.out.println("=== Test Data Created ===");
+            // remover apos debug
         };
     }
 

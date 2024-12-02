@@ -63,13 +63,14 @@
         <!-- Lista de powers -->
         <div th:each="power : ${myPowers}"
              th:data-power-id="${power.id}"
-             th:data-power-value="${power.value}"  <!-- Mantendo .value -->
+             th:data-power-value="${power.value}"
         class="p-3 border rounded-lg text-center bg-yellow-50 power-card opacity-50 transition-all duration-200"
         onclick="selectPower(this)">
         <span th:text="${power.value}"
               class="text-2xl font-bold text-yellow-800"></span>
       </div>
       <script>
+        alert("asd")
         function selectPower(element) {
             if (!selectedFighter || element.classList.contains('cursor-not-allowed')) return;
 
@@ -98,7 +99,6 @@
   </div>
 
   <script>
-    console.log("teste")
     let selectedFighter = null;
 
     function selectFighter(element) {
