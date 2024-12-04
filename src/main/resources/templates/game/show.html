@@ -1,5 +1,6 @@
 <div th:fragment="content">
   <div class="container mx-auto p-4">
+
     <!-- Status do Jogo -->
     <div class="mb-6 bg-white rounded-lg shadow p-4">
       <h2 class="text-2xl font-bold mb-2">Game Status</h2>
@@ -70,7 +71,6 @@
               class="text-2xl font-bold text-yellow-800"></span>
       </div>
       <script>
-        alert("asd")
         function selectPower(element) {
             if (!selectedFighter || element.classList.contains('cursor-not-allowed')) return;
 
@@ -96,8 +96,30 @@
       </script>
     </div>
   </div>
-  </div>
 
+    <!-- Opponent Powers -->
+    <div class="bg-white rounded-lg shadow p-4">
+      <h3 class="text-xl font-bold mb-4">Oponnent Available Powers</h3>
+      <div class="grid grid-cols-8 gap-2">
+        <!-- Mensagem quando não há powers -->
+        <div th:if="${#lists.isEmpty(opponentPowers)}"
+             class="col-span-8 text-center text-gray-500 py-4">
+          No powers available
+        </div>
+
+        <!-- Lista de powers -->
+        <div th:each="power : ${opponentPowers}"
+             th:data-power-id="${power.id}"
+             th:data-power-value="${power.value}"
+             class="p-3 border rounded-lg text-center bg-yellow-50 power-card opacity-50 transition-all duration-200"
+             onclick="selectPower(this)">
+        <span th:text="${power.value}"
+              class="text-2xl font-bold text-yellow-800"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
   <script>
     let selectedFighter = null;
 

@@ -59,10 +59,15 @@ public class GameController {
         Player opponent = game.getPlayer1().equals(currentPlayer) ? game.getPlayer2() : game.getPlayer1();
         List<GameFighter> opponentFighters = gameFighterRepository.findByGameAndPlayer(game, opponent);
 
+        // Powers do jogador oponente
+        // List<Power> opponentPowers = powerService.getAvailablePowers(opponent);
+        // System.out.println("Powers encontrados: " + opponentPowers.size());  // Debug
+
         model.addAttribute("game", game);
         model.addAttribute("myFighters", myFighters);
         model.addAttribute("myPowers", myPowers);
         model.addAttribute("opponentFighters", opponentFighters);
+        // model.addAttribute("opponentPowers", opponentPowers);
         model.addAttribute("currentPlayer", currentPlayer);
         model.addAttribute("isMyTurn", currentPlayer.equals(game.getCurrentTurn()));
 
