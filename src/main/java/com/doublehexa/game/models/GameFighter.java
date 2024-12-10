@@ -23,7 +23,7 @@ public class GameFighter {
     @PrePersist
     @PreUpdate
     public void validatePoints() {
-        if (points < 1 || points > 8) {
+        if (points < 0 || points > 16) {
             throw new IllegalArgumentException("Fighter points must be between 1 and 8");
         }
     }

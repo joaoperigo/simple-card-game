@@ -8,27 +8,37 @@ import com.doublehexa.game.dto.GameStateDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 
 @Controller
 @RequiredArgsConstructor
 public class GameWebSocketController {
     private final GameService gameService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/game.move")
-    @SendTo("/topic/game.{gameId}")
-    public GameStateDTO handleMove(GameMoveRequest moveRequest) {
-        Game game = gameService.makeMove(
-                moveRequest.getGameId(),
-                moveRequest.getAttackingFighterId(),
-                moveRequest.getAttackPowerId(),
-                moveRequest.getTargetFighterId()
-        );
+    @Transactional(readOnly = true)  // Adiciona transação readonly
+    public void handleMove(GameMoveRequest moveRequest) {
+        try {
+            Game game = gameService.makeMove(
+                    moveRequest.getGameId(),
+                    moveRequest.getAttackingFighterId(),
+                    moveRequest.getAttackPowerId(),
+                    moveRequest.getTargetFighterId()
+            );
 
-        if (game.getStatus() == GameStatus.FINISHED) {
-            return new GameStateDTO(game, "Game Over!");
+            // Não precisa mais forçar carregamento aqui pois já foi feito no service
+            GameStateDTO gameState = new GameStateDTO(game, "Move completed");
+            messagingTemplate.convertAndSend("/topic/game", gameState);
+
+        } catch (Exception e) {
+            // Usa o método que carrega todos os detalhes
+            Game game = gameService.findByIdWithDetails(moveRequest.getGameId());
+            messagingTemplate.convertAndSend("/topic/game",
+                    new GameStateDTO(game, "Error: " + e.getMessage())
+            );
         }
-
-        return new GameStateDTO(game, "Move completed");
     }
 }

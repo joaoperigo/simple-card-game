@@ -4,8 +4,13 @@ import com.doublehexa.game.models.Game;
 import com.doublehexa.game.models.GameFighter;
 import com.doublehexa.game.models.Player;
 import com.doublehexa.game.models.Power;
+import com.doublehexa.game.models.MoveStatus;
 import com.doublehexa.game.repositories.GameFighterRepository;
-import com.doublehexa.game.repositories.PowerRepository;
+import com.doublehexa.game.models.GameMove;
+import com.doublehexa.game.models.MoveStatus;
+import com.doublehexa.game.repositories.GameMoveRepository;
+
+
 import com.doublehexa.game.services.PowerService;
 import com.doublehexa.game.services.GameService;
 import com.doublehexa.game.services.PlayerService;
@@ -13,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+
 
 import java.security.Principal;
 import java.util.List;
@@ -25,6 +32,7 @@ public class GameController {
     private final PlayerService playerService;
     private final GameFighterRepository gameFighterRepository;
     private final PowerService powerService;
+    private final GameMoveRepository gameMoveRepository;
 
     @GetMapping("/lobby")
     public String showLobby(Model model, Principal principal) {
@@ -47,6 +55,15 @@ public class GameController {
     public String showGame(@PathVariable Long id, Model model, Principal principal) {
         Game game = gameService.findById(id);
         Player currentPlayer = playerService.findByUsername(principal.getName());
+
+        // Verifica se tem ataque pendente de defesa
+        GameMove pendingMove = gameMoveRepository.findFirstByGameAndStatusOrderByCreatedAtDesc(
+                game, MoveStatus.PENDING_DEFENSE);
+
+        if (pendingMove != null && pendingMove.getTargetFighter().getPlayer().equals(currentPlayer)) {
+            model.addAttribute("pendingDefense", true);
+            model.addAttribute("pendingMove", pendingMove);
+        }
 
         // Fighters do jogador atual
         List<GameFighter> myFighters = gameFighterRepository.findByGameAndPlayer(game, currentPlayer);

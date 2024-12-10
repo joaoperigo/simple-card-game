@@ -5,6 +5,8 @@ import com.doublehexa.game.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.*;
 
@@ -17,6 +19,9 @@ public class GameService {
     private final PowerRepository powerRepository;
     private final GameMoveRepository gameMoveRepository;
     private final PowerService powerService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public Game findById(Long id) {
         return gameRepository.findById(id)
@@ -94,14 +99,24 @@ public class GameService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Game findByIdWithDetails(Long id) {
+        Game game = gameRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Game not found"));
+
+        // Força carregamento de todas as coleções necessárias
+        game.getPlayer1Fighters().size();
+        game.getPlayer2Fighters().size();
+        game.getPlayer1().getPowers().size();
+        game.getPlayer2().getPowers().size();
+
+        return game;
+    }
+
+
     @Transactional
     public Game makeMove(Long gameId, Long attackingFighterId, Long attackPowerId, Long targetFighterId) {
         Game game = findById(gameId);
-
-        // Validar se o jogo está em andamento
-        if (game.getStatus() != GameStatus.PLAYING) {
-            throw new IllegalStateException("Game is not in playing state");
-        }
 
         GameFighter attacker = gameFighterRepository.findById(attackingFighterId)
                 .orElseThrow(() -> new RuntimeException("Attacker not found"));
@@ -112,31 +127,88 @@ public class GameService {
         GameFighter target = gameFighterRepository.findById(targetFighterId)
                 .orElseThrow(() -> new RuntimeException("Target not found"));
 
-        // Validar o poder usado
-        if (attackPower.getValue() > attacker.getPoints()) {
-            throw new IllegalStateException("Power value cannot be greater than fighter points");
+        // Validações
+        if (!attacker.isActive() || !target.isActive()) {
+            throw new IllegalStateException("Fighter inativo não pode participar do combate");
         }
 
-        // Registrar o movimento
+        if (attackPower.getValue() > attacker.getPoints()) {
+            throw new IllegalStateException("Power maior que os pontos do fighter");
+        }
+
+        // Registra o movimento (sem aplicar dano ainda)
         GameMove move = new GameMove();
         move.setGame(game);
         move.setAttackingFighter(attacker);
         move.setAttackPower(attackPower);
         move.setTargetFighter(target);
-
         gameMoveRepository.save(move);
 
-        // Marcar o poder como usado
+        // Marca o power do ataque como usado
         attackPower.setUsed(true);
         powerRepository.save(attackPower);
 
-        // Verifica se o jogo acabou após o movimento
-        if (isGameOver(game)) {
-            finishGame(game);
+        // Muda o turno para o defensor poder escolher a defesa
+        Player defender = attacker.getPlayer().equals(game.getPlayer1()) ?
+                game.getPlayer2() : game.getPlayer1();
+        game.setCurrentTurn(defender);
+
+        return gameRepository.save(game);
+    }
+
+    @Transactional
+    public Game defendMove(Long gameId, Long moveId, Long defensePowerId) {
+        Game game = findById(gameId);
+        GameMove move = gameMoveRepository.findById(moveId)
+                .orElseThrow(() -> new RuntimeException("Move not found"));
+
+        // Se defensePowerId for null, significa que o defensor escolheu não usar power
+        if (defensePowerId != null) {
+            Power defensePower = powerRepository.findById(defensePowerId)
+                    .orElseThrow(() -> new RuntimeException("Defense power not found"));
+
+            if (defensePower.getValue() > move.getTargetFighter().getPoints()) {
+                throw new IllegalStateException("Power maior que os pontos do fighter");
+            }
+
+            move.setDefensePower(defensePower);
+            defensePower.setUsed(true);
+            powerRepository.save(defensePower);
         }
 
-        return game;
+        // Calcula dano
+        int attackValue = move.getAttackPower().getValue();
+        int defenseValue = move.getDefensePower() != null ?
+                move.getDefensePower().getValue() : 0;
+
+        int damage = attackValue - defenseValue;
+
+        if (damage > 0) {
+            // Defensor toma dano
+            GameFighter target = move.getTargetFighter();
+            target.setPoints(Math.max(0, target.getPoints() - damage));
+            if (target.getPoints() <= 0) {
+                target.setActive(false);
+            }
+            gameFighterRepository.save(target);
+        } else if (damage < 0) {
+            // Atacante toma dano do excesso de defesa
+            GameFighter attacker = move.getAttackingFighter();
+            attacker.setPoints(Math.max(0, attacker.getPoints() + damage));
+            if (attacker.getPoints() <= 0) {
+                attacker.setActive(false);
+            }
+            gameFighterRepository.save(attacker);
+        }
+
+        // Muda o turno para o próximo atacante
+        Player nextAttacker = game.getCurrentTurn().equals(game.getPlayer1()) ?
+                game.getPlayer2() : game.getPlayer1();
+        game.setCurrentTurn(nextAttacker);
+
+        return gameRepository.save(game);
     }
+
 
     public boolean isGameOver(Game game) {
         // Verificar se algum jogador perdeu todos os fighters

@@ -1,4 +1,3 @@
-console.log("asd")
 // Estado do jogo
 let gameState = {
     selectedFighter: null,
@@ -18,8 +17,12 @@ function connectWebSocket() {
 
         // Inscrever no tópico do jogo
         const gameId = document.getElementById('game-status').dataset.gameId;
-        gameState.stompClient.subscribe('/topic/game.' + gameId, function(response) {
-            handleGameUpdate(JSON.parse(response.body));
+        gameState.stompClient.subscribe('/topic/game', function(response) {
+            const gameUpdate = JSON.parse(response.body);
+            // Só atualiza se for para este jogo
+            if (gameUpdate.gameId === gameId) {
+                handleGameUpdate(gameUpdate);
+            }
         });
     });
 }
@@ -125,23 +128,58 @@ function enableAttackButton() {
 // Executa ataque
 function executeAttack() {
     if (!gameState.selectedFighter || !gameState.selectedPower || !gameState.selectedTarget) {
+        console.log("Faltam seleções para o ataque");
         return;
     }
 
-    const gameId = document.getElementById('game-status').dataset.gameId;
-    const moveRequest = {
-        gameId: gameId,
+    const attackData = {
         attackingFighterId: gameState.selectedFighter.id,
         attackPowerId: gameState.selectedPower.id,
         targetFighterId: gameState.selectedTarget.id
     };
 
-    // Envia movimento via WebSocket
-    gameState.stompClient.send("/app/game.move", {}, JSON.stringify(moveRequest));
+    const gameId = document.getElementById('game-status').dataset.gameId;
 
-    // Reseta seleções
-    resetSelections();
+    fetch('/api/games/' + gameId + '/move', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(attackData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Ataque realizado:", data);
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Erro ao realizar ataque: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao realizar ataque:', error);
+        alert("Erro ao realizar ataque");
+    });
 }
+//function executeAttack() {
+//    if (!gameState.selectedFighter || !gameState.selectedPower || !gameState.selectedTarget) {
+//        return;
+//    }
+//
+//    const gameId = document.getElementById('game-status').dataset.gameId;
+//    const moveRequest = {
+//        gameId: gameId,
+//        attackingFighterId: gameState.selectedFighter.id,
+//        attackPowerId: gameState.selectedPower.id,
+//        targetFighterId: gameState.selectedTarget.id
+//    };
+//
+//    // Envia movimento via WebSocket
+//    gameState.stompClient.send("/app/game.move", {}, JSON.stringify(moveRequest));
+//
+//    // Reseta seleções
+//    resetSelections();
+//}
 
 // Reseta seleções
 function resetSelections() {
@@ -166,37 +204,65 @@ function handleGameUpdate(gameState) {
     // Atualiza turno atual
     const currentTurnElement = document.getElementById('current-turn');
     if (currentTurnElement) {
-        currentTurnElement.textContent = gameState.game.currentTurn.username;
+        currentTurnElement.textContent = gameState.currentTurnUsername;
     }
 
-    // Atualiza fighters
-    updateFighters(gameState.game);
+    // Atualiza fighters e powers
+    updateFighters(gameState.player1Fighters, gameState.player2Fighters);
+    updatePowers(gameState.availablePowers);
 
     // Exibe mensagem se houver
     if (gameState.message) {
         showGameMessage(gameState.message);
     }
+
+    // Atualiza se é minha vez
+        const isMyTurn = document.getElementById('game-status').dataset.isMyTurn === 'true';
+    if (isMyTurn !== (gameState.currentTurnUsername === getCurrentUsername())) {
+        // Recarrega a página se o turno mudou
+        window.location.reload();
+    }
 }
 
 // Atualiza estado dos fighters
-function updateFighters(game) {
-    // Atualiza fighters do jogador
-    game.player1Fighters.forEach(fighter => {
-        const fighterElement = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
-        if (fighterElement) {
-            fighterElement.querySelector('.points').textContent = fighter.points;
-            fighterElement.dataset.active = fighter.active;
-            updateFighterStatus(fighterElement, fighter.active);
+function updateFighters(player1Fighters, player2Fighters) {
+    // Atualiza fighters do player 1
+    player1Fighters.forEach(fighter => {
+        const element = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
+        if (element) {
+            element.querySelector('.points').textContent = fighter.points;
+            element.dataset.active = fighter.active;
+            if (!fighter.active) {
+                element.classList.add('bg-gray-50');
+                element.classList.remove('bg-blue-50');
+            }
         }
     });
 
-    // Atualiza fighters do oponente
-    game.player2Fighters.forEach(fighter => {
-        const fighterElement = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
-        if (fighterElement) {
-            fighterElement.querySelector('.points').textContent = fighter.points;
-            fighterElement.dataset.active = fighter.active;
-            updateFighterStatus(fighterElement, fighter.active);
+    // Atualiza fighters do player 2
+    player2Fighters.forEach(fighter => {
+        const element = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
+        if (element) {
+            element.querySelector('.points').textContent = fighter.points;
+            element.dataset.active = fighter.active;
+            if (!fighter.active) {
+                element.classList.add('bg-gray-50');
+                element.classList.remove('bg-red-50');
+            }
+        }
+    });
+}
+
+function updatePowers(powers) {
+    if (!powers) return;
+
+    // Remove powers usados
+    powers.forEach(power => {
+        if (power.used) {
+            const element = document.querySelector(`[data-power-id="${power.id}"]`);
+            if (element) {
+                element.remove();
+            }
         }
     });
 }
@@ -224,8 +290,74 @@ function showGameMessage(message) {
     }
 }
 
+// Para selecionar power de defesa
+let selectedDefensePower = null;
+
+function selectDefensePower(element) {
+    document.querySelectorAll('.power-card').forEach(card => {
+        card.classList.remove('border-blue-500', 'border-2');
+    });
+
+    element.classList.add('border-blue-500', 'border-2');
+    selectedDefensePower = {
+        id: element.dataset.powerId,
+        value: parseInt(element.dataset.powerValue)
+    };
+
+    document.getElementById('defend-button').disabled = false;
+}
+
+function executeDefense() {
+    const gameId = document.getElementById('game-status').dataset.gameId;
+    const moveId = document.getElementById('pending-move').dataset.moveId;
+
+    const defenseData = {
+        defensePowerId: selectedDefensePower?.id
+    };
+
+    fetch(`/api/games/${gameId}/move/${moveId}/defend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(defenseData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Erro ao defender:', error);
+    });
+}
+
+function defendWithoutPower() {
+    const gameId = document.getElementById('game-status').dataset.gameId;
+    const moveId = document.getElementById('pending-move').dataset.moveId;
+
+    fetch(`/api/games/${gameId}/move/${moveId}/defend`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Erro ao defender:', error);
+    });
+}
+
 // Inicializa o jogo quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
     gameState.isMyTurn = document.querySelector('[data-is-my-turn="true"]') !== null;
 });
+
+// Função auxiliar para pegar o username do jogador atual
+function getCurrentUsername() {
+    // Você precisará adicionar um elemento no HTML com o username do jogador atual
+    return document.getElementById('current-player-username').textContent;
+}

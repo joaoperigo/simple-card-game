@@ -27,4 +27,7 @@ public class GameMove {
     private Power defensePower;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Enumerated(EnumType.STRING)
+    private MoveStatus status = MoveStatus.PENDING_DEFENSE;
 }

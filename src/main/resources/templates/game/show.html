@@ -23,6 +23,42 @@
       <div th:if="${isMyTurn}" class="mt-2 text-green-600 font-bold">It's your turn!</div>
     </div>
 
+    <!--    verifica movimento pendente-->
+    <div th:if="${pendingDefense}" class="mb-6 bg-white rounded-lg shadow p-4">
+      <h3 class="text-xl font-bold mb-4">Ataque Pendente</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p>Atacante: <span th:text="${pendingMove.attackingFighter.name}"></span></p>
+          <p>Power usado: <span th:text="${pendingMove.attackPower.value}"></span></p>
+        </div>
+        <div>
+          <p>Fighter alvo: <span th:text="${pendingMove.targetFighter.name}"></span></p>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h4 class="font-bold">Escolha um power para defender:</h4>
+        <div class="grid grid-cols-8 gap-2">
+          <div th:each="power : ${myPowers}"
+               class="p-3 border rounded-lg text-center bg-yellow-50 power-card"
+               th:data-power-id="${power.id}"
+               th:data-power-value="${power.value}"
+               onclick="selectDefensePower(this)">
+            <span class="text-2xl font-bold text-yellow-800" th:text="${power.value}"></span>
+          </div>
+        </div>
+        <div class="mt-4 text-center">
+          <button onclick="defendWithoutPower()" class="bg-gray-500 text-white px-4 py-2 rounded-lg mr-2">
+            Não defender
+          </button>
+          <button id="defend-button" onclick="executeDefense()"
+                  class="bg-blue-600 text-white px-4 py-2 rounded-lg" disabled>
+            Defender
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Game Message -->
     <div id="game-message" class="mb-4 p-4 bg-blue-100 text-blue-700 rounded-lg hidden"></div>
 
