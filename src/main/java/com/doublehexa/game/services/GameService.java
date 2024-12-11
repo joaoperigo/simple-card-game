@@ -160,12 +160,19 @@ public class GameService {
     public Game defendMove(Long gameId, Long moveId, Long defensePowerId) {
         Game game = findById(gameId);
         GameMove move = gameMoveRepository.findById(moveId)
-                .orElseThrow(() -> new RuntimeException("Move not found"));
+                .orElseThrow(() -> new RuntimeException("Movimento não encontrado"));
 
-        // Se defensePowerId for null, significa que o defensor escolheu não usar power
+        if (move.getStatus() != MoveStatus.PENDING_DEFENSE) {
+            throw new IllegalStateException("Este movimento não está aguardando defesa");
+        }
+
+        int attackValue = move.getAttackPower().getValue();
+        int defenseValue = 0;
+
+        // Se escolheu defender com power
         if (defensePowerId != null) {
             Power defensePower = powerRepository.findById(defensePowerId)
-                    .orElseThrow(() -> new RuntimeException("Defense power not found"));
+                    .orElseThrow(() -> new RuntimeException("Power de defesa não encontrado"));
 
             if (defensePower.getValue() > move.getTargetFighter().getPoints()) {
                 throw new IllegalStateException("Power maior que os pontos do fighter");
@@ -174,15 +181,11 @@ public class GameService {
             move.setDefensePower(defensePower);
             defensePower.setUsed(true);
             powerRepository.save(defensePower);
+            defenseValue = defensePower.getValue();
         }
 
-        // Calcula dano
-        int attackValue = move.getAttackPower().getValue();
-        int defenseValue = move.getDefensePower() != null ?
-                move.getDefensePower().getValue() : 0;
-
+        // Calcula resultado do combate
         int damage = attackValue - defenseValue;
-
         if (damage > 0) {
             // Defensor toma dano
             GameFighter target = move.getTargetFighter();
@@ -194,17 +197,21 @@ public class GameService {
         } else if (damage < 0) {
             // Atacante toma dano do excesso de defesa
             GameFighter attacker = move.getAttackingFighter();
-            attacker.setPoints(Math.max(0, attacker.getPoints() + damage));
+            int excessDamage = Math.abs(damage);
+            attacker.setPoints(Math.max(0, attacker.getPoints() - excessDamage));
             if (attacker.getPoints() <= 0) {
                 attacker.setActive(false);
             }
             gameFighterRepository.save(attacker);
         }
 
-        // Muda o turno para o próximo atacante
-        Player nextAttacker = game.getCurrentTurn().equals(game.getPlayer1()) ?
-                game.getPlayer2() : game.getPlayer1();
-        game.setCurrentTurn(nextAttacker);
+        // Finaliza o movimento
+        move.setStatus(MoveStatus.COMPLETED);
+        gameMoveRepository.save(move);
+
+        // Define próximo turno (defensor vira atacante)
+        Player nextPlayer = move.getTargetFighter().getPlayer();
+        game.setCurrentTurn(nextPlayer);
 
         return gameRepository.save(game);
     }

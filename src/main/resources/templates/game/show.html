@@ -24,37 +24,50 @@
     </div>
 
     <!--    verifica movimento pendente-->
-    <div th:if="${pendingDefense}" class="mb-6 bg-white rounded-lg shadow p-4">
-      <h3 class="text-xl font-bold mb-4">Ataque Pendente</h3>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <p>Atacante: <span th:text="${pendingMove.attackingFighter.name}"></span></p>
-          <p>Power usado: <span th:text="${pendingMove.attackPower.value}"></span></p>
-        </div>
-        <div>
-          <p>Fighter alvo: <span th:text="${pendingMove.targetFighter.name}"></span></p>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <h4 class="font-bold">Escolha um power para defender:</h4>
-        <div class="grid grid-cols-8 gap-2">
-          <div th:each="power : ${myPowers}"
-               class="p-3 border rounded-lg text-center bg-yellow-50 power-card"
-               th:data-power-id="${power.id}"
-               th:data-power-value="${power.value}"
-               onclick="selectDefensePower(this)">
-            <span class="text-2xl font-bold text-yellow-800" th:text="${power.value}"></span>
+    <!-- Adicionar no topo do jogo -->
+    <div th:if="${pendingDefense}" class="mb-6 bg-red-100 rounded-lg shadow p-4">
+      <h2 class="text-xl font-bold text-red-800">Seu Fighter está sendo atacado!</h2>
+      <div id="pending-move" th:data-move-id="${pendingMove.id}" class="mt-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="font-bold">Atacante:</p>
+            <div class="p-2 bg-white rounded">
+              <p>Fighter: <span th:text="${pendingMove.attackingFighter.name}"></span></p>
+              <p>Poder de Ataque: <span class="font-bold text-red-600" th:text="${pendingMove.attackPower.value}"></span></p>
+            </div>
+          </div>
+          <div>
+            <p class="font-bold">Alvo:</p>
+            <div class="p-2 bg-white rounded">
+              <p>Fighter: <span th:text="${pendingMove.targetFighter.name}"></span></p>
+              <p>Pontos atuais: <span class="font-bold" th:text="${pendingMove.targetFighter.points}"></span></p>
+            </div>
           </div>
         </div>
-        <div class="mt-4 text-center">
-          <button onclick="defendWithoutPower()" class="bg-gray-500 text-white px-4 py-2 rounded-lg mr-2">
-            Não defender
-          </button>
-          <button id="defend-button" onclick="executeDefense()"
-                  class="bg-blue-600 text-white px-4 py-2 rounded-lg" disabled>
-            Defender
-          </button>
+
+        <div class="mt-6">
+          <h3 class="text-lg font-bold">Escolha sua defesa:</h3>
+          <div class="grid grid-cols-8 gap-2 mt-2">
+            <div th:each="power : ${myPowers}"
+                 th:if="${power.value <= pendingMove.targetFighter.points}"
+                 class="p-3 border rounded-lg text-center bg-yellow-50 power-card cursor-pointer hover:bg-yellow-100"
+                 th:data-power-id="${power.id}"
+                 th:data-power-value="${power.value}"
+                 onclick="selectDefensePower(this)">
+              <span class="text-2xl font-bold text-yellow-800" th:text="${power.value}"></span>
+            </div>
+          </div>
+          <div class="mt-4 text-center">
+            <button onclick="executeDefense()" id="defend-button"
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold mr-4 opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+              Defender com Power
+            </button>
+            <button onclick="defendWithoutPower()"
+                    class="bg-gray-600 text-white px-6 py-2 rounded-lg font-bold">
+              Não Defender
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -93,7 +106,7 @@
           <div>Points: <span class="points font-semibold" th:text="${fighter.points}"></span></div>
           <div>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"
                              th:class="${fighter.active ? 'text-green-600' : 'text-red-600'}"></span></div>
-          <div class="mt-2 text-center fighter-select-status hidden" th:if="${isMyTurn && fighter.active}">
+          <div class="mt-2 text-center fighter-select-status hidden">
             Selected
           </div>
         </div>

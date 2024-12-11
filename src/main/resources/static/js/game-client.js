@@ -3,8 +3,9 @@ let gameState = {
     selectedFighter: null,
     selectedPower: null,
     selectedTarget: null,
-    isMyTurn: false,
-    stompClient: null
+    selectedDefensePower: null
+//    isMyTurn: false,
+//    stompClient: null
 };
 
 // Conectar ao WebSocket
@@ -29,22 +30,34 @@ function connectWebSocket() {
 
 // Seleção de Fighter
 function selectFighter(element) {
+    // Primeiro, verifica se o fighter está ativo
+    if (!element.dataset.active || element.dataset.active === 'false') {
+        console.log("Fighter inativo não pode ser selecionado");
+        return;
+    }
+
     // Remove seleção anterior
     document.querySelectorAll('.fighter-card').forEach(card => {
         card.classList.remove('border-blue-500', 'border-2');
-        card.querySelector('.fighter-select-status').classList.add('hidden');
+        const status = card.querySelector('.fighter-select-status');
+        if (status) {
+            status.classList.add('hidden');
+        }
     });
 
     // Adiciona seleção ao fighter atual
     element.classList.add('border-blue-500', 'border-2');
-    element.querySelector('.fighter-select-status').classList.remove('hidden');
+    const status = element.querySelector('.fighter-select-status');
+    if (status) {
+        status.classList.remove('hidden');
+    }
 
     gameState.selectedFighter = {
         id: element.dataset.fighterId,
         points: parseInt(element.dataset.points)
     };
 
-    // Habilita powers válidos
+    // Atualiza powers disponíveis
     updateAvailablePowers();
 }
 
@@ -294,36 +307,47 @@ function showGameMessage(message) {
 let selectedDefensePower = null;
 
 function selectDefensePower(element) {
+    // Remove seleção anterior
     document.querySelectorAll('.power-card').forEach(card => {
-        card.classList.remove('border-blue-500', 'border-2');
+        card.classList.remove('border-green-500', 'border-2');
     });
 
-    element.classList.add('border-blue-500', 'border-2');
-    selectedDefensePower = {
+    // Adiciona seleção ao power atual
+    element.classList.add('border-green-500', 'border-2');
+
+    gameState.selectedDefensePower = {
         id: element.dataset.powerId,
         value: parseInt(element.dataset.powerValue)
     };
 
+    // Habilita botão de defesa
     document.getElementById('defend-button').disabled = false;
+    document.getElementById('defend-button').classList.remove('opacity-50');
 }
 
 function executeDefense() {
-    const gameId = document.getElementById('game-status').dataset.gameId;
-    const moveId = document.getElementById('pending-move').dataset.moveId;
+    const pendingMoveElement = document.getElementById('pending-move');
+    if (!pendingMoveElement || !gameState.selectedDefensePower) {
+        console.log("Dados de defesa incompletos");
+        return;
+    }
 
-    const defenseData = {
-        defensePowerId: selectedDefensePower?.id
-    };
+    const gameId = document.getElementById('game-status').dataset.gameId;
+    const moveId = pendingMoveElement.dataset.moveId;
+
+    // Mudamos aqui - enviamos direto o ID em vez de um objeto
+    const defensePowerId = gameState.selectedDefensePower.id;
 
     fetch(`/api/games/${gameId}/move/${moveId}/defend`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(defenseData)
+        body: JSON.stringify(defensePowerId)  // Enviamos só o ID
     })
     .then(response => response.json())
     .then(data => {
+        console.log("Defesa processada:", data);
         window.location.reload();
     })
     .catch(error => {
@@ -332,8 +356,14 @@ function executeDefense() {
 }
 
 function defendWithoutPower() {
+    const pendingMoveElement = document.getElementById('pending-move');
+    if (!pendingMoveElement) {
+        console.log("Nenhum movimento pendente encontrado");
+        return;
+    }
+
     const gameId = document.getElementById('game-status').dataset.gameId;
-    const moveId = document.getElementById('pending-move').dataset.moveId;
+    const moveId = pendingMoveElement.dataset.moveId;
 
     fetch(`/api/games/${gameId}/move/${moveId}/defend`, {
         method: 'POST',

@@ -88,10 +88,10 @@ public class DataSeeder {
 
     private void createFightersForPlayer(Game game, Player player, GameFighterRepository repo) {
         List<GameFighter> fighters = Arrays.asList(
-                createFighter(game, player, "Fighter 1", 4),
-                createFighter(game, player, "Fighter 2", 3),
-                createFighter(game, player, "Fighter 3", 5),
-                createFighter(game, player, "Fighter 4", 4)
+                createFighter(game, player, "Fighter 1", 8),
+                createFighter(game, player, "Fighter 2", 6),
+                createFighter(game, player, "Fighter 3", 1),
+                createFighter(game, player, "Fighter 4", 1)
         );
         repo.saveAll(fighters);
     }
