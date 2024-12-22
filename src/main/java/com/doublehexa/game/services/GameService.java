@@ -253,7 +253,7 @@ public class GameService {
         List<Power> player1Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer1().getId(), false);
         List<Power> player2Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer2().getId(), false);
 
-        if (player1Powers.isEmpty() && player2Powers.isEmpty()) {
+        if (!canPlayerMakeMove(game, game.getPlayer1()) && !canPlayerMakeMove(game, game.getPlayer2())) {
             // Calcula pontos totais dos fighters ativos
             List<GameFighter> player1ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer1(), true);
             List<GameFighter> player2ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer2(), true);
@@ -310,19 +310,42 @@ public class GameService {
         // Verify it's actually the player's turn
         Player currentPlayer = game.getCurrentTurn();
 
-        // Verify player has no powers left
-        List<Power> availablePowers = powerRepository.findByOwnerIdAndUsed(currentPlayer.getId(), false);
-        if (!availablePowers.isEmpty()) {
-            throw new IllegalStateException("Cannot pass turn while you still have powers available");
+        // Verifica se o jogador realmente não pode fazer nenhum movimento
+        if (canPlayerMakeMove(game, currentPlayer)) {
+            throw new IllegalStateException("Você ainda pode fazer movimentos com seus fighters e powers");
         }
 
         // Change turn
-        game.setCurrentTurn(game.getCurrentTurn().equals(game.getPlayer1()) ?
-                game.getPlayer2() : game.getPlayer1());
+        Player nextPlayer = currentPlayer.equals(game.getPlayer1()) ? game.getPlayer2() : game.getPlayer1();
+        game.setCurrentTurn(nextPlayer);
 
-        // Check if game is over (both players out of powers)
-        if (isGameOver(game)) {
+        // Verifica se o jogo acabou (nenhum jogador pode fazer movimentos)
+        if (!canPlayerMakeMove(game, game.getPlayer1()) && !canPlayerMakeMove(game, game.getPlayer2())) {
+            // Calcula pontos totais dos fighters ativos
+            List<GameFighter> player1ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer1(), true);
+            List<GameFighter> player2ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer2(), true);
+
+            int player1Points = player1ActiveFighters.stream()
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            int player2Points = player2ActiveFighters.stream()
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            System.out.println("Player 1 (" + game.getPlayer1().getUsername() + ") active fighters: " + player1ActiveFighters.size());
+            System.out.println("Player 2 (" + game.getPlayer2().getUsername() + ") active fighters: " + player2ActiveFighters.size());
+            System.out.println("Player 1 points: " + player1Points);
+            System.out.println("Player 2 points: " + player2Points);
+
+            // Define o vencedor
             game.setStatus(GameStatus.FINISHED);
+            if (player1Points > player2Points) {
+                game.setWinner(game.getPlayer1());
+            } else if (player2Points > player1Points) {
+                game.setWinner(game.getPlayer2());
+            }
+            // Se for empate, winner fica null
         }
 
         return gameRepository.save(game);
@@ -341,5 +364,26 @@ public class GameService {
 
     public List<Game> findActiveGames() {
         return gameRepository.findByStatusIn(Arrays.asList(GameStatus.SETUP, GameStatus.PLAYING));
+    }
+
+    private boolean canPlayerMakeMove(Game game, Player player) {
+        // Pega powers não usados do jogador
+        List<Power> availablePowers = powerRepository.findByOwnerIdAndUsed(player.getId(), false);
+        if (availablePowers.isEmpty()) {
+            return false;
+        }
+
+        // Pega fighters ativos do jogador
+        List<GameFighter> activeFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, player, true);
+        if (activeFighters.isEmpty()) {
+            return false;
+        }
+
+        // Para cada power, verifica se existe algum fighter que pode usá-lo
+        return availablePowers.stream().anyMatch(power ->
+                activeFighters.stream().anyMatch(fighter ->
+                        fighter.getPoints() >= power.getValue()
+                )
+        );
     }
 }

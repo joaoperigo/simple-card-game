@@ -24,9 +24,15 @@
       <div id="turn-message" class="mt-2 text-green-600 font-bold" style="display: none">
         It's your turn!
       </div>
+
+      <!-- Resultado do jogo -->
+      <div id="game-result" class="mt-4 text-xl font-bold hidden">
+        <div class="game-winner text-green-600"></div>
+        <div class="final-score text-gray-700 text-base mt-2"></div>
+      </div>
     </div>
 
-    <!--    verifica movimento pendente-->
+    <!--    Verifica movimento pendente-->
     <!-- Adicionar no topo do jogo -->
     <div th:if="${pendingDefense}" class="mb-6 bg-red-100 rounded-lg shadow p-4">
       <h2 class="text-xl font-bold text-red-800">Seu Fighter está sendo atacado!</h2>

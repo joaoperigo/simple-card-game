@@ -187,35 +187,17 @@ function handleGameUpdate(gameUpdate) {
 
     // Trata área de defesa
     handleDefenseArea(gameUpdate, isMyTurn);
-
-    // Verifica se o jogo terminou
-    if (gameUpdate.status === 'FINISHED') {
-        let message;
-        if (gameUpdate.winnerUsername) {
-            message = `Jogo terminado! ${gameUpdate.winnerUsername} venceu!\n` +
-                     `Pontuação final:\n` +
-                     `${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} pontos\n` +
-                     `${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} pontos`;
-        } else {
-            message = `Jogo terminou empatado!\n` +
-                     `Pontuação final:\n` +
-                     `${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} pontos\n` +
-                     `${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} pontos`;
-        }
-
-        // Desabilita todos os controles do jogo
-        document.querySelectorAll('.fighter-card, .power-card, .opponent-fighter').forEach(el => {
-            el.classList.add('pointer-events-none', 'opacity-50');
-        });
-
-        // Mostra o resultado
-        showGameMessage(message);
-    }
 }
 
 function updateGameStatus(gameUpdate, isMyTurn) {
     const gameStatusArea = document.getElementById('game-status');
     gameStatusArea.dataset.isMyTurn = isMyTurn.toString();
+
+    // Atualiza o status do jogo
+    const statusSpan = gameStatusArea.querySelector('span.font-semibold');
+    if (statusSpan) {
+        statusSpan.textContent = gameUpdate.status;
+    }
 
     const turnSpan = document.getElementById('current-turn');
     if (turnSpan) {
@@ -226,6 +208,30 @@ function updateGameStatus(gameUpdate, isMyTurn) {
     const turnMessage = document.getElementById('turn-message');
     if (turnMessage) {
         turnMessage.style.display = isMyTurn ? 'block' : 'none';
+    }
+
+    // Atualiza resultado do jogo
+    const gameResult = document.getElementById('game-result');
+    const winnerDiv = gameResult.querySelector('.game-winner');
+    const scoreDiv = gameResult.querySelector('.final-score');
+
+    if (gameUpdate.status === 'FINISHED') {
+        gameResult.classList.remove('hidden');
+
+        if (gameUpdate.winnerUsername) {
+            winnerDiv.textContent = `Winner: ${gameUpdate.winnerUsername}!`;
+            scoreDiv.textContent = `Final Score - ${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} points | ${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} points`;
+        } else {
+            winnerDiv.textContent = "Game ended in a tie!";
+            scoreDiv.textContent = `Final Score - ${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} points | ${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} points`;
+        }
+
+        // Desabilita interações com o jogo
+        document.querySelectorAll('.fighter-card, .power-card, .opponent-fighter').forEach(el => {
+            el.classList.add('pointer-events-none', 'opacity-50');
+        });
+    } else {
+        gameResult.classList.add('hidden');
     }
 
     // Atualiza status dos fighters
@@ -248,10 +254,12 @@ function updateGameUI(gameUpdate, currentUsername, isMyTurn) {
     // Determina se sou player1 ou player2
     const isPlayer1 = currentUsername === gameUpdate.player1Username;
 
-    // Determina meus powers e os atualiza
+    // Determina meus powers e fighters
     const myPowers = isPlayer1 ? gameUpdate.player1Powers : gameUpdate.player2Powers;
-    const powerContainer = document.querySelector('.grid.grid-cols-8.gap-2:not(#defense-powers)');
+    const myFighters = isPlayer1 ? gameUpdate.player1Fighters : gameUpdate.player2Fighters;
 
+    // Atualiza container de powers
+    const powerContainer = document.querySelector('.grid.grid-cols-8.gap-2:not(#defense-powers)');
     if (powerContainer && myPowers) {
         powerContainer.innerHTML = myPowers
             .filter(power => !power.used)
@@ -268,13 +276,16 @@ function updateGameUI(gameUpdate, currentUsername, isMyTurn) {
     // Atualiza fighters
     updateFighters(gameUpdate.player1Fighters, gameUpdate.player2Fighters, isMyTurn);
 
-        const hasNoPowers = !myPowers || myPowers.length === 0;
+    // Verifica se pode fazer algum movimento (tem powers E fighters que podem usá-los)
+    const canMakeMove = myFighters?.some(fighter =>
+        fighter.active && myPowers?.some(power => fighter.points >= power.value)
+    ) ?? false;
 
-        // Show/hide pass turn button based on powers
-        const passTurnButton = document.getElementById('pass-turn-button');
-        if (passTurnButton) {
-            passTurnButton.style.display = (isMyTurn && hasNoPowers) ? 'inline-block' : 'none';
-        }
+    // Atualiza visibilidade do botão Pass Turn
+    const passTurnButton = document.getElementById('pass-turn-button');
+    if (passTurnButton) {
+        passTurnButton.style.display = (isMyTurn && !canMakeMove) ? 'inline-block' : 'none';
+    }
 }
 
 window.passTurn = function() {
