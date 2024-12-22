@@ -21,7 +21,9 @@
       <h2 class="text-2xl font-bold mb-2">Game Status</h2>
       <div>Status: <span class="font-semibold" th:text="${game.status}"></span></div>
       <div>Current Turn: <span id="current-turn" class="font-semibold" th:text="${game.currentTurn?.username}"></span></div>
-      <div id="is-current-turn" th:if="${isMyTurn}" class="mt-2 text-green-600 font-bold">It's your turn!</div>
+      <div id="turn-message" class="mt-2 text-green-600 font-bold" style="display: none">
+        It's your turn!
+      </div>
     </div>
 
     <!--    verifica movimento pendente-->
@@ -87,8 +89,7 @@
              onclick="selectTarget(this)">
           <h4 class="font-bold text-lg mb-2" th:text="${fighter.name}"></h4>
           <div>Points: <span class="points font-semibold" th:text="${fighter.points}"></span></div>
-          <div>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"
-                             th:class="${fighter.active ? 'text-green-600' : 'text-red-600'}"></span></div>
+          <div class="fighter-status">Status: <span class="status-text"></span></div>
         </div>
       </div>
     </div>
@@ -102,12 +103,11 @@
              th:data-fighter-id="${fighter.id}"
              th:data-points="${fighter.points}"
              th:data-active="${fighter.active}"
-             th:onclick="${isMyTurn && fighter.active} ? 'selectFighter(this)' : ''">
+             onclick="selectFighter(this)">
 
           <h4 class="font-bold text-lg mb-2" th:text="${fighter.name}"></h4>
           <div>Points: <span class="points" th:text="${fighter.points}"></span></div>
-          <div>Status: <span th:text="${fighter.active ? 'Active' : 'Defeated'}"
-                             th:class="${fighter.active ? 'text-green-600' : 'text-red-600'}"></span></div>
+          <div class="fighter-status">Status: <span class="status-text"></span></div>
 
           <div class="mt-2 text-center fighter-select-status hidden">
             Selected
@@ -134,7 +134,7 @@
     </div>
 
     <!-- Attack Button -->
-    <div class="mt-6 text-center" th:if="${isMyTurn}">
+    <div class="mt-6 text-center" >
       <button id="attack-button"
               class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold opacity-50 disabled:cursor-not-allowed"
               onclick="executeAttack()"

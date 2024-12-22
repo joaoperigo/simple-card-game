@@ -199,10 +199,25 @@ function updateGameStatus(gameUpdate, isMyTurn) {
     }
 
     // Atualiza mensagem de turno
-    const turnMessage = document.querySelector('.mt-2.text-green-600.font-bold');
+    const turnMessage = document.getElementById('turn-message');
     if (turnMessage) {
-        turnMessage.style.display = isMyTurn ? '' : 'none';
+        turnMessage.style.display = isMyTurn ? 'block' : 'none';
     }
+
+    // Atualiza status dos fighters
+    document.querySelectorAll('.fighter-status').forEach(statusDiv => {
+        const fighterId = statusDiv.closest('[data-fighter-id]').dataset.fighterId;
+        const fighter = [...gameUpdate.player1Fighters, ...gameUpdate.player2Fighters]
+            .find(f => f.id.toString() === fighterId);
+
+        if (fighter) {
+            const statusText = statusDiv.querySelector('.status-text');
+            if (statusText) {
+                statusText.textContent = fighter.active ? 'Active' : 'Defeated';
+                statusText.className = `status-text ${fighter.active ? 'text-green-600' : 'text-red-600'}`;
+            }
+        }
+    });
 }
 
 function updateGameUI(gameUpdate, currentUsername, isMyTurn) {
@@ -370,6 +385,7 @@ function showDefenseArea(pendingMove) {
 let selectedDefensePower = null;
 
 function selectDefensePower(element) {
+console.log("selectDefensePower")
     document.querySelectorAll('.power-card').forEach(card => {
         card.classList.remove('border-blue-500', 'border-2');
     });
@@ -391,6 +407,7 @@ function selectDefensePower(element) {
     } else {
         console.log('Botão de defesa não encontrado');
     }
+    console.log("FIm selectDefensePower")
 }
 
 function executeDefense() {
@@ -422,6 +439,7 @@ function executeDefense() {
 }
 
 function defendWithoutPower() {
+console.log("defendWithoutPower")
     const gameId = document.getElementById('game-status').dataset.gameId;
     const moveId = document.getElementById('pending-move').dataset.moveId;
 
