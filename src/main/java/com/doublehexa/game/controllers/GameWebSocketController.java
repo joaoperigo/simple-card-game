@@ -1,43 +1,59 @@
 package com.doublehexa.game.controllers;
 
 import com.doublehexa.game.models.Game;
-import com.doublehexa.game.models.GameStatus;
 import com.doublehexa.game.services.GameService;
 import com.doublehexa.game.dto.GameMoveRequest;
 import com.doublehexa.game.dto.GameStateDTO;
+import com.doublehexa.game.dto.DefenseRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
 public class GameWebSocketController {
     private final GameService gameService;
-    private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/game.move")
-    @Transactional(readOnly = true)  // Adiciona transação readonly
-    public void handleMove(GameMoveRequest moveRequest) {
+    @SendTo("/topic/game")
+    @Transactional
+    public GameStateDTO handleMove(GameMoveRequest moveRequest) {
+        System.out.println("Recebido movimento para jogo: " + moveRequest.getGameId());
         try {
-            Game game = gameService.makeMove(
+            Game game = gameService.registerAttack(
                     moveRequest.getGameId(),
                     moveRequest.getAttackingFighterId(),
                     moveRequest.getAttackPowerId(),
                     moveRequest.getTargetFighterId()
             );
-
-            // Não precisa mais forçar carregamento aqui pois já foi feito no service
-            GameStateDTO gameState = new GameStateDTO(game, "Move completed");
-            messagingTemplate.convertAndSend("/topic/game", gameState);
-
+            return new GameStateDTO(game, "Ataque realizado!");
         } catch (Exception e) {
-            // Usa o método que carrega todos os detalhes
-            Game game = gameService.findByIdWithDetails(moveRequest.getGameId());
-            messagingTemplate.convertAndSend("/topic/game",
-                    new GameStateDTO(game, "Error: " + e.getMessage())
+            return new GameStateDTO(
+                    gameService.findById(moveRequest.getGameId()),
+                    "Erro no ataque: " + e.getMessage()
+            );
+        }
+    }
+
+    @MessageMapping("/game.defend")
+    @SendTo("/topic/game")
+    @Transactional
+    public GameStateDTO handleDefense(DefenseRequest defenseRequest) {
+        System.out.println("Recebida defesa para jogo: " + defenseRequest.getGameId());
+        try {
+            Game game = gameService.defendMove(
+                    defenseRequest.getGameId(),
+                    defenseRequest.getMoveId(),
+                    defenseRequest.getDefensePowerId()
+            );
+            return new GameStateDTO(game, "Defesa processada!");
+        } catch (Exception e) {
+            return new GameStateDTO(
+                    gameService.findById(defenseRequest.getGameId()),
+                    "Erro na defesa: " + e.getMessage()
             );
         }
     }

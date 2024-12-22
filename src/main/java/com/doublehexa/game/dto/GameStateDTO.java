@@ -2,13 +2,14 @@ package com.doublehexa.game.dto;
 
 import com.doublehexa.game.models.Game;
 import com.doublehexa.game.models.GameFighter;
+import com.doublehexa.game.models.GameMove;
 import com.doublehexa.game.models.GameStatus;
 import com.doublehexa.game.models.Power;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.doublehexa.game.models.MoveStatus;
 
 @Data
 public class GameStateDTO {
@@ -19,41 +20,48 @@ public class GameStateDTO {
     private List<FighterDTO> player2Fighters;
     private List<PowerDTO> availablePowers;
     private String message;
+    private GameMoveDTO pendingMove;
 
-    // Construtor principal
-    public GameStateDTO(Game game, String message) {
+    public GameStateDTO(Game game, String message) { // Removemos o gameMoveRepository
         this.gameId = game.getId();
         this.status = game.getStatus();
         this.currentTurnUsername = game.getCurrentTurn().getUsername();
         this.message = message;
 
-        // Filtra fighters por jogador corretamente
-        List<GameFighter> p1Fighters = game.getPlayer1Fighters().stream()
-                .filter(f -> f.getPlayer().getId().equals(game.getPlayer1().getId()))
+        this.player1Fighters = game.getPlayer1Fighters().stream()
+                .map(fighter -> new FighterDTO(fighter))
                 .collect(Collectors.toList());
 
-        List<GameFighter> p2Fighters = game.getPlayer2Fighters().stream()
-                .filter(f -> f.getPlayer().getId().equals(game.getPlayer2().getId()))
+        this.player2Fighters = game.getPlayer2Fighters().stream()
+                .map(fighter -> new FighterDTO(fighter))
                 .collect(Collectors.toList());
 
-        this.player1Fighters = p1Fighters.stream()
-                .map(FighterDTO::new)
-                .collect(Collectors.toList());
-
-        this.player2Fighters = p2Fighters.stream()
-                .map(FighterDTO::new)
-                .collect(Collectors.toList());
-
-        // Adiciona powers disponíveis
         this.availablePowers = game.getCurrentTurn().getPowers().stream()
                 .filter(p -> !p.isUsed())
-                .map(PowerDTO::new)
+                .map(power -> new PowerDTO(power))
                 .collect(Collectors.toList());
+
+//        GameMove pendingMove = gameMoveRepository
+//                .findFirstByGameAndStatusOrderByCreatedAtDesc(game, MoveStatus.PENDING_DEFENSE);
+//
+//        if (pendingMove != null) {
+//            this.pendingMove = new GameMoveDTO(pendingMove);
+//        }
+//        GameMove pendingMove = gameMoveRepository.findFirstByGameAndStatusOrderByCreatedAtDesc(
+//                game, MoveStatus.PENDING_DEFENSE);
+//
+//        if (pendingMove != null) {
+//            this.pendingMove = new GameMoveDTO(pendingMove);
+//        }
+        // Pegamos o movimento pendente através dos moves do game
+        this.pendingMove = game.getMoves().stream()
+                .filter(move -> move.getStatus() == MoveStatus.PENDING_DEFENSE)
+                .findFirst()
+                .map(move -> new GameMoveDTO(move))
+                .orElse(null);
     }
 
-
     @Data
-    @NoArgsConstructor
     public static class FighterDTO {
         private Long id;
         private String name;
@@ -69,16 +77,28 @@ public class GameStateDTO {
     }
 
     @Data
-    @NoArgsConstructor
     public static class PowerDTO {
         private Long id;
         private int value;
-        private boolean used;
 
         public PowerDTO(Power power) {
             this.id = power.getId();
             this.value = power.getValue();
-            this.used = power.isUsed();
+        }
+    }
+
+    @Data
+    public static class GameMoveDTO {
+        private Long id;
+        private FighterDTO attackingFighter;
+        private PowerDTO attackPower;
+        private FighterDTO targetFighter;
+
+        public GameMoveDTO(GameMove move) {
+            this.id = move.getId();
+            this.attackingFighter = new FighterDTO(move.getAttackingFighter());
+            this.attackPower = new PowerDTO(move.getAttackPower());
+            this.targetFighter = new FighterDTO(move.getTargetFighter());
         }
     }
 }

@@ -127,31 +127,73 @@ public class GameService {
         GameFighter target = gameFighterRepository.findById(targetFighterId)
                 .orElseThrow(() -> new RuntimeException("Target not found"));
 
-        // Validações
-        if (!attacker.isActive() || !target.isActive()) {
-            throw new IllegalStateException("Fighter inativo não pode participar do combate");
+        // Aplica o dano
+        int damage = attackPower.getValue();
+        int newPoints = target.getPoints() - damage;
+        target.setPoints(Math.max(0, newPoints));
+
+        if (newPoints <= 0) {
+            target.setActive(false);
+
+            // Se houver excesso de dano, dá pontos para o atacante
+            int excess = Math.abs(newPoints);
+            attacker.setPoints(attacker.getPoints() + excess);
         }
 
-        if (attackPower.getValue() > attacker.getPoints()) {
-            throw new IllegalStateException("Power maior que os pontos do fighter");
-        }
+        // Salva as alterações nos fighters
+        gameFighterRepository.save(attacker);
+        gameFighterRepository.save(target);
 
-        // Registra o movimento (sem aplicar dano ainda)
+        // Marca o power como usado
+        attackPower.setUsed(true);
+        powerRepository.save(attackPower);
+
+        // Registra o movimento
         GameMove move = new GameMove();
         move.setGame(game);
         move.setAttackingFighter(attacker);
         move.setAttackPower(attackPower);
         move.setTargetFighter(target);
+//        move.setStatus(MoveStatus.COMPLETED);
+        move.setStatus(MoveStatus.PENDING_DEFENSE);
         gameMoveRepository.save(move);
 
-        // Marca o power do ataque como usado
+        // Muda o turno
+        game.setCurrentTurn(game.getCurrentTurn().equals(game.getPlayer1()) ?
+                game.getPlayer2() : game.getPlayer1());
+
+        return gameRepository.save(game);
+    }
+
+    @Transactional
+    public Game registerAttack(Long gameId, Long attackingFighterId, Long attackPowerId, Long targetFighterId) {
+        Game game = findById(gameId);
+
+        GameFighter attacker = gameFighterRepository.findById(attackingFighterId)
+                .orElseThrow(() -> new RuntimeException("Attacker not found"));
+
+        Power attackPower = powerRepository.findById(attackPowerId)
+                .orElseThrow(() -> new RuntimeException("Attack power not found"));
+
+        GameFighter target = gameFighterRepository.findById(targetFighterId)
+                .orElseThrow(() -> new RuntimeException("Target not found"));
+
+        // Marca o power como usado
         attackPower.setUsed(true);
         powerRepository.save(attackPower);
 
-        // Muda o turno para o defensor poder escolher a defesa
-        Player defender = attacker.getPlayer().equals(game.getPlayer1()) ?
-                game.getPlayer2() : game.getPlayer1();
-        game.setCurrentTurn(defender);
+        // Registra o movimento como pendente
+        GameMove move = new GameMove();
+        move.setGame(game);
+        move.setAttackingFighter(attacker);
+        move.setAttackPower(attackPower);
+        move.setTargetFighter(target);
+        move.setStatus(MoveStatus.PENDING_DEFENSE);
+        gameMoveRepository.save(move);
+
+        // Muda o turno
+        game.setCurrentTurn(game.getCurrentTurn().equals(game.getPlayer1()) ?
+                game.getPlayer2() : game.getPlayer1());
 
         return gameRepository.save(game);
     }

@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+import com.doublehexa.game.models.MoveStatus;
+
+
 @Data
 @Entity
 public class GameMove {

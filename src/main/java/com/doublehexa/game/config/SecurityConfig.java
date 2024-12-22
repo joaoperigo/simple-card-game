@@ -36,9 +36,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/home", "/register", "/login", "/css/**", "/js/**", "/webjars/**").permitAll()
+                        .requestMatchers("/", "/home", "/register", "/login",
+                                "/css/**", "/js/**", "/webjars/**", "/static/**",
+                                "/ws/**").permitAll()  // Permitir WebSocket
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers
@@ -52,8 +53,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
                         .permitAll()
-                )
-                .authenticationProvider(authenticationProvider());  // Use o authenticationProvider aqui
+                );
 
         return http.build();
     }
