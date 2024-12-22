@@ -187,6 +187,30 @@ function handleGameUpdate(gameUpdate) {
 
     // Trata área de defesa
     handleDefenseArea(gameUpdate, isMyTurn);
+
+    // Verifica se o jogo terminou
+    if (gameUpdate.status === 'FINISHED') {
+        let message;
+        if (gameUpdate.winnerUsername) {
+            message = `Jogo terminado! ${gameUpdate.winnerUsername} venceu!\n` +
+                     `Pontuação final:\n` +
+                     `${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} pontos\n` +
+                     `${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} pontos`;
+        } else {
+            message = `Jogo terminou empatado!\n` +
+                     `Pontuação final:\n` +
+                     `${gameUpdate.player1Username}: ${gameUpdate.player1TotalPoints} pontos\n` +
+                     `${gameUpdate.player2Username}: ${gameUpdate.player2TotalPoints} pontos`;
+        }
+
+        // Desabilita todos os controles do jogo
+        document.querySelectorAll('.fighter-card, .power-card, .opponent-fighter').forEach(el => {
+            el.classList.add('pointer-events-none', 'opacity-50');
+        });
+
+        // Mostra o resultado
+        showGameMessage(message);
+    }
 }
 
 function updateGameStatus(gameUpdate, isMyTurn) {
@@ -496,9 +520,13 @@ function showGameMessage(message) {
     if (messageElement) {
         messageElement.textContent = message;
         messageElement.classList.remove('hidden');
-        setTimeout(() => {
-            messageElement.classList.add('hidden');
-        }, 3000);
+
+        // Se não for mensagem de fim de jogo, esconde após 3 segundos
+        if (!message.includes('Jogo terminado')) {
+            setTimeout(() => {
+                messageElement.classList.add('hidden');
+            }, 3000);
+        }
     }
 }
 

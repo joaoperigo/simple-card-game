@@ -25,6 +25,9 @@ public class GameStateDTO {
     private List<PowerDTO> player2Powers;
     private String player1Username;
     private String player2Username;
+    private String winnerUsername;
+    private Integer player1TotalPoints;
+    private Integer player2TotalPoints;
 
     public GameStateDTO(Game game, String message) { // Removemos o gameMoveRepository
         this.gameId = game.getId();
@@ -78,6 +81,29 @@ public class GameStateDTO {
                 .findFirst()
                 .map(move -> new GameMoveDTO(move))
                 .orElse(null);
+
+        if (game.getStatus() == GameStatus.FINISHED) {
+            if (game.getWinner() != null) {
+                this.winnerUsername = game.getWinner().getUsername();
+            }
+
+            // Calculando pontos do player1
+            this.player1TotalPoints = game.getPlayer1Fighters().stream()
+                    .filter(fighter -> fighter.getPlayer().getId().equals(game.getPlayer1().getId()))
+                    .filter(GameFighter::isActive)
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            // Calculando pontos do player2
+            this.player2TotalPoints = game.getPlayer2Fighters().stream()
+                    .filter(fighter -> fighter.getPlayer().getId().equals(game.getPlayer2().getId()))
+                    .filter(GameFighter::isActive)
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            System.out.println("DTO - Player 1 (" + game.getPlayer1().getUsername() + ") points: " + player1TotalPoints);
+            System.out.println("DTO - Player 2 (" + game.getPlayer2().getUsername() + ") points: " + player2TotalPoints);
+        }
     }
 
     @Data

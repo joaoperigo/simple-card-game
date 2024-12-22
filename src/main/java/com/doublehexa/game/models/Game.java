@@ -21,6 +21,9 @@ public class Game {
     @ManyToOne
     private Player currentTurn;
 
+    @ManyToOne
+    private Player winner;
+
     @Enumerated(EnumType.STRING)
     private GameStatus status = GameStatus.SETUP;
 

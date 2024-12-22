@@ -10,4 +10,5 @@ public interface GameFighterRepository extends JpaRepository<GameFighter, Long> 
     long countByGame(Game game);
     long countByGameAndPlayerAndActiveTrue(Game game, Player player);
     List<GameFighter> findByGameAndPlayer(Game game, Player player);
+    List<GameFighter> findByGameAndPlayerAndActive(Game game, Player player, boolean active);
 }

@@ -249,9 +249,41 @@ public class GameService {
         move.setStatus(MoveStatus.COMPLETED);
         gameMoveRepository.save(move);
 
-        // Agora sim, muda o turno após a defesa
-        Player nextPlayer = move.getTargetFighter().getPlayer();
-        game.setCurrentTurn(nextPlayer);
+        // Verifica se ambos os jogadores ficaram sem powers
+        List<Power> player1Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer1().getId(), false);
+        List<Power> player2Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer2().getId(), false);
+
+        if (player1Powers.isEmpty() && player2Powers.isEmpty()) {
+            // Calcula pontos totais dos fighters ativos
+            List<GameFighter> player1ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer1(), true);
+            List<GameFighter> player2ActiveFighters = gameFighterRepository.findByGameAndPlayerAndActive(game, game.getPlayer2(), true);
+
+            int player1Points = player1ActiveFighters.stream()
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            int player2Points = player2ActiveFighters.stream()
+                    .mapToInt(GameFighter::getPoints)
+                    .sum();
+
+            System.out.println("Player 1 (" + game.getPlayer1().getUsername() + ") active fighters: " + player1ActiveFighters.size());
+            System.out.println("Player 2 (" + game.getPlayer2().getUsername() + ") active fighters: " + player2ActiveFighters.size());
+            System.out.println("Player 1 points: " + player1Points);
+            System.out.println("Player 2 points: " + player2Points);
+
+            // Define o vencedor
+            game.setStatus(GameStatus.FINISHED);
+            if (player1Points > player2Points) {
+                game.setWinner(game.getPlayer1());
+            } else if (player2Points > player1Points) {
+                game.setWinner(game.getPlayer2());
+            }
+            // Se for empate, winner fica null
+        } else {
+            // Se o jogo não acabou, muda o turno
+            Player nextPlayer = move.getTargetFighter().getPlayer();
+            game.setCurrentTurn(nextPlayer);
+        }
 
         return gameRepository.save(game);
     }
