@@ -5,11 +5,11 @@ import com.doublehexa.game.services.GameService;
 import com.doublehexa.game.dto.GameMoveRequest;
 import com.doublehexa.game.dto.GameStateDTO;
 import com.doublehexa.game.dto.DefenseRequest;
+import com.doublehexa.game.dto.PassTurnRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.stereotype.Controller;
 
 @Controller
@@ -54,6 +54,21 @@ public class GameWebSocketController {
             return new GameStateDTO(
                     gameService.findById(defenseRequest.getGameId()),
                     "Erro na defesa: " + e.getMessage()
+            );
+        }
+    }
+
+    @MessageMapping("/game.pass-turn")
+    @SendTo("/topic/game")
+    @Transactional
+    public GameStateDTO handlePassTurn(PassTurnRequest passTurnRequest) {
+        try {
+            Game game = gameService.passTurn(passTurnRequest.getGameId());
+            return new GameStateDTO(game, "Turno passado!");
+        } catch (Exception e) {
+            return new GameStateDTO(
+                    gameService.findById(passTurnRequest.getGameId()),
+                    "Erro ao passar turno: " + e.getMessage()
             );
         }
     }

@@ -258,13 +258,42 @@ public class GameService {
 
 
     public boolean isGameOver(Game game) {
-        // Verificar se algum jogador perdeu todos os fighters
+        // Game is over if either all fighters are defeated or both players are out of powers
         long player1ActiveFighters = gameFighterRepository
                 .countByGameAndPlayerAndActiveTrue(game, game.getPlayer1());
         long player2ActiveFighters = gameFighterRepository
                 .countByGameAndPlayerAndActiveTrue(game, game.getPlayer2());
 
-        return player1ActiveFighters == 0 || player2ActiveFighters == 0;
+        List<Power> player1Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer1().getId(), false);
+        List<Power> player2Powers = powerRepository.findByOwnerIdAndUsed(game.getPlayer2().getId(), false);
+
+        return player1ActiveFighters == 0 || player2ActiveFighters == 0 ||
+                (player1Powers.isEmpty() && player2Powers.isEmpty());
+    }
+
+    @Transactional
+    public Game passTurn(Long gameId) {
+        Game game = findById(gameId);
+
+        // Verify it's actually the player's turn
+        Player currentPlayer = game.getCurrentTurn();
+
+        // Verify player has no powers left
+        List<Power> availablePowers = powerRepository.findByOwnerIdAndUsed(currentPlayer.getId(), false);
+        if (!availablePowers.isEmpty()) {
+            throw new IllegalStateException("Cannot pass turn while you still have powers available");
+        }
+
+        // Change turn
+        game.setCurrentTurn(game.getCurrentTurn().equals(game.getPlayer1()) ?
+                game.getPlayer2() : game.getPlayer1());
+
+        // Check if game is over (both players out of powers)
+        if (isGameOver(game)) {
+            game.setStatus(GameStatus.FINISHED);
+        }
+
+        return gameRepository.save(game);
     }
 
     @Transactional

@@ -243,6 +243,37 @@ function updateGameUI(gameUpdate, currentUsername, isMyTurn) {
 
     // Atualiza fighters
     updateFighters(gameUpdate.player1Fighters, gameUpdate.player2Fighters, isMyTurn);
+
+        const hasNoPowers = !myPowers || myPowers.length === 0;
+
+        // Show/hide pass turn button based on powers
+        const passTurnButton = document.getElementById('pass-turn-button');
+        if (passTurnButton) {
+            passTurnButton.style.display = (isMyTurn && hasNoPowers) ? 'inline-block' : 'none';
+        }
+}
+
+window.passTurn = function() {
+    if (!gameState.stompClient) {
+        console.error("WebSocket connection not established");
+        return;
+    }
+
+    const gameId = document.getElementById('game-status').dataset.gameId;
+
+    const passTurnRequest = {
+        gameId: parseInt(gameId)
+    };
+
+    // Send pass turn via WebSocket
+    gameState.stompClient.send("/app/game.pass-turn", {}, JSON.stringify(passTurnRequest));
+
+    // Disable the pass turn button after clicking
+    const passTurnButton = document.getElementById('pass-turn-button');
+    if (passTurnButton) {
+        passTurnButton.disabled = true;
+        passTurnButton.classList.add('opacity-50');
+    }
 }
 
 function handleDefenseArea(gameUpdate, isMyTurn) {
