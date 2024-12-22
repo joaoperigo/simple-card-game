@@ -21,11 +21,17 @@ public class GameStateDTO {
     private List<PowerDTO> availablePowers;
     private String message;
     private GameMoveDTO pendingMove;
+    private List<PowerDTO> player1Powers;
+    private List<PowerDTO> player2Powers;
+    private String player1Username;
+    private String player2Username;
 
     public GameStateDTO(Game game, String message) { // Removemos o gameMoveRepository
         this.gameId = game.getId();
         this.status = game.getStatus();
         this.currentTurnUsername = game.getCurrentTurn().getUsername();
+        this.player1Username = game.getPlayer1().getUsername();
+        this.player2Username = game.getPlayer2().getUsername();
         this.message = message;
 
         this.player1Fighters = game.getPlayer1Fighters().stream()
@@ -53,6 +59,19 @@ public class GameStateDTO {
 //        if (pendingMove != null) {
 //            this.pendingMove = new GameMoveDTO(pendingMove);
 //        }
+
+        // Adicionando powers dos jogadores
+        this.player1Powers = game.getPlayer1().getPowers().stream()
+                .filter(p -> !p.isUsed())
+                .map(power -> new PowerDTO(power))
+                .collect(Collectors.toList());
+
+        this.player2Powers = game.getPlayer2().getPowers().stream()
+                .filter(p -> !p.isUsed())
+                .map(power -> new PowerDTO(power))
+                .collect(Collectors.toList());
+
+
         // Pegamos o movimento pendente através dos moves do game
         this.pendingMove = game.getMoves().stream()
                 .filter(move -> move.getStatus() == MoveStatus.PENDING_DEFENSE)
@@ -74,16 +93,19 @@ public class GameStateDTO {
             this.points = fighter.getPoints();
             this.active = fighter.isActive();
         }
+
     }
 
     @Data
     public static class PowerDTO {
         private Long id;
         private int value;
+        private String ownerUsername;  // Adicionado
 
         public PowerDTO(Power power) {
             this.id = power.getId();
             this.value = power.getValue();
+            this.ownerUsername = power.getOwner().getUsername();  // Adicionado
         }
     }
 

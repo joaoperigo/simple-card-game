@@ -191,9 +191,7 @@ public class GameService {
         move.setStatus(MoveStatus.PENDING_DEFENSE);
         gameMoveRepository.save(move);
 
-        // Muda o turno
-        game.setCurrentTurn(game.getCurrentTurn().equals(game.getPlayer1()) ?
-                game.getPlayer2() : game.getPlayer1());
+        // Não muda o turno aqui!
 
         return gameRepository.save(game);
     }
@@ -251,7 +249,7 @@ public class GameService {
         move.setStatus(MoveStatus.COMPLETED);
         gameMoveRepository.save(move);
 
-        // Define próximo turno (defensor vira atacante)
+        // Agora sim, muda o turno após a defesa
         Player nextPlayer = move.getTargetFighter().getPlayer();
         game.setCurrentTurn(nextPlayer);
 

@@ -17,11 +17,11 @@
     <div id="game-status" class="mb-6 bg-white rounded-lg shadow p-4"
          th:data-game-id="${game.id}"
          th:data-is-my-turn="${isMyTurn}">
-      <span id="current-player-username" class="hidden" th:text="${currentPlayer.username}"></span>
+      <span id="current-player-username"  th:text="${currentPlayer.username}"></span>
       <h2 class="text-2xl font-bold mb-2">Game Status</h2>
       <div>Status: <span class="font-semibold" th:text="${game.status}"></span></div>
       <div>Current Turn: <span id="current-turn" class="font-semibold" th:text="${game.currentTurn?.username}"></span></div>
-      <div th:if="${isMyTurn}" class="mt-2 text-green-600 font-bold">It's your turn!</div>
+      <div id="is-current-turn" th:if="${isMyTurn}" class="mt-2 text-green-600 font-bold">It's your turn!</div>
     </div>
 
     <!--    verifica movimento pendente-->

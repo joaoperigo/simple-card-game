@@ -9,23 +9,26 @@ let gameState = {
 
 // Conectar ao WebSocket
 function connectWebSocket() {
+    console.log('Iniciando conexão WebSocket...');
     const socket = new SockJS('/ws');
     gameState.stompClient = Stomp.over(socket);
 
     gameState.stompClient.connect({}, function(frame) {
-        console.log('Connected: ' + frame);
-
-        // Inscrever no tópico do jogo
+        console.log('WebSocket Connected:', frame);
         const gameId = document.getElementById('game-status').dataset.gameId;
+        const currentUsername = document.getElementById('current-player-username').textContent;
+
         gameState.stompClient.subscribe('/topic/game', function(response) {
             const gameUpdate = JSON.parse(response.body);
             // Só atualiza se for para este jogo
             if (gameUpdate.gameId.toString() === gameId) {
-                handleGameUpdate(gameUpdate);
+                handleGameUpdate(gameUpdate, currentUsername);
             }
         });
     });
 }
+
+
 
 // Seleção de Fighter
 function selectFighter(element) {
@@ -170,83 +173,106 @@ function resetSelections() {
 }
 
 // Atualiza o estado do jogo
-function handleGameUpdate(gameState) {
+function handleGameUpdate(gameUpdate) {
+    console.log('Recebido update do jogo:', gameUpdate);
+
+    const currentUsername = document.getElementById('current-player-username').textContent;
+    const isMyTurn = gameUpdate.currentTurnUsername === currentUsername;
+
+    // Atualiza área de status
+    updateGameStatus(gameUpdate, isMyTurn);
+
     // Atualiza fighters e powers
-    updateFighters(gameState.player1Fighters, gameState.player2Fighters);
-    updatePowers(gameState.availablePowers);
+    updateGameUI(gameUpdate, currentUsername, isMyTurn);
 
-    // Atualiza turno atual
-    const currentTurnElement = document.getElementById('current-turn');
-    if (currentTurnElement) {
-        currentTurnElement.textContent = gameState.currentTurnUsername;
+    // Trata área de defesa
+    handleDefenseArea(gameUpdate, isMyTurn);
+}
+
+function updateGameStatus(gameUpdate, isMyTurn) {
+    const gameStatusArea = document.getElementById('game-status');
+    gameStatusArea.dataset.isMyTurn = isMyTurn.toString();
+
+    const turnSpan = document.getElementById('current-turn');
+    if (turnSpan) {
+        turnSpan.textContent = gameUpdate.currentTurnUsername;
     }
 
-    // Verifica se há movimento pendente que requer defesa
-    if (gameState.pendingMove) {
-        showDefenseArea(gameState.pendingMove);
-    } else {
-        // Remove área de defesa se não houver movimento pendente
-        const defenseArea = document.getElementById('defense-area');
-        if (defenseArea) {
-            defenseArea.remove();
-        }
-    }
-
-    // Exibe mensagem se houver
-    if (gameState.message) {
-        showGameMessage(gameState.message);
-    }
-
-    // Atualiza se é minha vez
-    const gameStatusElement = document.getElementById('game-status');
-    const isMyTurn = gameStatusElement.dataset.isMyTurn === 'true';
-    const isNewTurnMine = gameState.currentTurnUsername === getCurrentUsername();
-
-    if (isMyTurn !== isNewTurnMine) {
-        // Atualiza o dataset
-        gameStatusElement.dataset.isMyTurn = isNewTurnMine.toString();
-
-        // Atualiza elementos visuais baseados no turno
-        const turnMessage = document.querySelector('[th\\:if="${isMyTurn}"]');
-        if (turnMessage) {
-            turnMessage.style.display = isNewTurnMine ? 'block' : 'none';
-        }
-
-        // Reseta seleções quando o turno muda
-        resetSelections();
+    // Atualiza mensagem de turno
+    const turnMessage = document.querySelector('.mt-2.text-green-600.font-bold');
+    if (turnMessage) {
+        turnMessage.style.display = isMyTurn ? '' : 'none';
     }
 }
 
-// Atualiza estado dos fighters
-function updateFighters(player1Fighters, player2Fighters) {
-    // Atualiza fighters do player 1
-    player1Fighters.forEach(fighter => {
-        const element = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
-        if (element) {
-            const pointsElement = element.querySelector('.points');
-            if (pointsElement) {
-                pointsElement.textContent = fighter.points;
-            }
-            element.dataset.active = fighter.active;
-            if (!fighter.active) {
-                element.classList.add('bg-gray-50');
-                element.classList.remove('bg-blue-50');
-            }
-        }
-    });
+function updateGameUI(gameUpdate, currentUsername, isMyTurn) {
+    // Determina se sou player1 ou player2
+    const isPlayer1 = currentUsername === gameUpdate.player1Username;
 
-    // Atualiza fighters do player 2
-    player2Fighters.forEach(fighter => {
-        const element = document.querySelector(`[data-fighter-id="${fighter.id}"]`);
-        if (element) {
+    // Determina meus powers e os atualiza
+    const myPowers = isPlayer1 ? gameUpdate.player1Powers : gameUpdate.player2Powers;
+    const powerContainer = document.querySelector('.grid.grid-cols-8.gap-2:not(#defense-powers)');
+
+    if (powerContainer && myPowers) {
+        powerContainer.innerHTML = myPowers
+            .filter(power => !power.used)
+            .map(power => `
+                <div class="p-3 border rounded-lg text-center bg-yellow-50 power-card ${isMyTurn ? '' : 'opacity-50'}"
+                     data-power-id="${power.id}"
+                     data-power-value="${power.value}"
+                     ${isMyTurn ? 'onclick="selectPower(this)"' : ''}>
+                    <span class="text-2xl font-bold text-yellow-800">${power.value}</span>
+                </div>
+            `).join('');
+    }
+
+    // Atualiza fighters
+    updateFighters(gameUpdate.player1Fighters, gameUpdate.player2Fighters, isMyTurn);
+}
+
+function handleDefenseArea(gameUpdate, isMyTurn) {
+    const existingDefenseArea = document.getElementById('defense-area');
+
+    if (gameUpdate.pendingMove && !isMyTurn) {
+        if (!existingDefenseArea) {
+            showDefenseArea(gameUpdate.pendingMove);
+        }
+    } else if (existingDefenseArea) {
+        existingDefenseArea.remove();
+    }
+
+    if (gameUpdate.message) {
+        showGameMessage(gameUpdate.message);
+    }
+}
+
+function updateFighters(player1Fighters, player2Fighters, isMyTurn) {
+    const fighterElements = document.querySelectorAll('.fighter-card, .opponent-fighter');
+
+    fighterElements.forEach(element => {
+        const fighterId = element.dataset.fighterId;
+        const fighter = [...player1Fighters, ...player2Fighters]
+            .find(f => f.id.toString() === fighterId);
+
+        if (fighter) {
+            // Atualiza pontos
             const pointsElement = element.querySelector('.points');
             if (pointsElement) {
                 pointsElement.textContent = fighter.points;
             }
-            element.dataset.active = fighter.active;
+
+            // Atualiza status ativo/inativo
+            element.dataset.active = fighter.active.toString();
             if (!fighter.active) {
                 element.classList.add('bg-gray-50');
-                element.classList.remove('bg-red-50');
+                element.classList.remove('bg-blue-50', 'bg-red-50');
+            }
+
+            // Atualiza interatividade baseada no turno
+            if (isMyTurn) {
+                element.classList.remove('pointer-events-none', 'opacity-50');
+            } else {
+                element.classList.add('pointer-events-none', 'opacity-50');
             }
         }
     });
@@ -354,10 +380,26 @@ function selectDefensePower(element) {
         value: parseInt(element.dataset.powerValue)
     };
 
-    document.getElementById('defend-button').disabled = false;
+    // Tentar obter o botão de várias formas para garantir que o encontramos
+    const defendButton = document.querySelector('#defend-button') ||
+                        document.querySelector('button[onclick="executeDefense()"]');
+
+    if (defendButton) {
+        defendButton.disabled = false;
+        defendButton.classList.remove('opacity-50');
+        console.log('Botão de defesa habilitado:', defendButton);
+    } else {
+        console.log('Botão de defesa não encontrado');
+    }
 }
 
 function executeDefense() {
+    console.log("Apertou executeDefense")
+    if (!selectedDefensePower) {
+        console.log("Nenhum power de defesa selecionado");
+        return;
+    }
+
     const gameId = document.getElementById('game-status').dataset.gameId;
     const moveId = document.getElementById('pending-move').dataset.moveId;
 
@@ -414,7 +456,6 @@ function showGameMessage(message) {
 // Inicializa o jogo quando a página carregar
 document.addEventListener('DOMContentLoaded', function() {
     connectWebSocket();
-    gameState.isMyTurn = document.querySelector('[data-is-my-turn="true"]') !== null;
 });
 
 // Função auxiliar para pegar o username do jogador atual
