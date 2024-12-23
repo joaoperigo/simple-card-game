@@ -13,6 +13,8 @@
 <body>
 <div th:fragment="content">
   <div class="container mx-auto p-4">
+
+
     <!-- Game Status -->
     <div id="game-status" class="mb-6 bg-white rounded-lg shadow p-4"
          th:data-game-id="${game.id}"
@@ -156,5 +158,39 @@
     </div>
   </div>
 </div>
+
+<!--botoes para teste -->
+<div class="text-center">
+  <button onclick="nearTie()" class="bg-gray-600 text-white px-4 py-2 rounded">
+    Test Near Tie
+  </button>
+
+  <button onclick="nearLoss()" class="bg-gray-600 text-white px-4 py-2 rounded">
+    Test Near Loss
+  </button>
+
+  <button onclick="noValidGameMoves()" class="bg-gray-600 text-white px-4 py-2 rounded">
+    Test Near Invalidate Powers
+  </button>
+
+  <script>
+    function nearTie() {
+        fetch('/api/test-scenarios/setup-near-tie?gameId=2', {
+            method: 'POST'
+        }).then(() => window.location.reload());
+    }
+      function nearLoss() {
+        fetch('/api/test-scenarios/setup-near-loss?gameId=2', {
+            method: 'POST'
+        }).then(() => window.location.reload());
+    }
+      function noValidGameMoves() {
+        fetch('/api/test-scenarios/setup-no-valid-moves?gameId=2', {
+            method: 'POST'
+        }).then(() => window.location.reload());
+    }
+  </script>
+</div>
+
 </body>
 </html>

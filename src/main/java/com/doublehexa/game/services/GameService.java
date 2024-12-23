@@ -386,4 +386,10 @@ public class GameService {
                 )
         );
     }
+
+    // added for api test
+    @Transactional
+    public Game save(Game game) {
+        return gameRepository.save(game);
+    }
 }
